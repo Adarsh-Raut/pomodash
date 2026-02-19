@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTimerContext } from "@/components/providers/TimerProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { RecentSessions } from "@/components/stats/RecentSessions";
@@ -21,6 +21,8 @@ interface DashboardClientProps {
   todayStats: TodayStats;
 }
 
+const ACTIVE_TASK_KEY = "pomodash:activeTaskId";
+
 export function DashboardClient({
   settings,
   recentSessions,
@@ -29,6 +31,21 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const { activeTaskId, setActiveTaskId } = useTimerContext();
   const [tasks, setTasks] = useState(initialTasks);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(ACTIVE_TASK_KEY);
+    if (saved && initialTasks.some((t) => t.id === saved)) {
+      setActiveTaskId(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTaskId) {
+      localStorage.setItem(ACTIVE_TASK_KEY, activeTaskId);
+    } else {
+      localStorage.removeItem(ACTIVE_TASK_KEY);
+    }
+  }, [activeTaskId]);
 
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
 
