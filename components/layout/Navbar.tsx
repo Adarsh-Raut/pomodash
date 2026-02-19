@@ -48,7 +48,7 @@ export function Navbar({ user }: NavbarProps) {
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <span className="text-xl">🍅</span>
             <span className="font-bold text-base hidden sm:block tracking-tight">
-              Pomodoro
+              Pomodash
             </span>
           </Link>
 

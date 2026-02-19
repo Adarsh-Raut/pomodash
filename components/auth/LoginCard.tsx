@@ -31,7 +31,7 @@ export function LoginCard() {
           <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
             <span className="text-3xl">🍅</span>
           </div>
-          <h1 className="text-3xl font-bold text-base-content">Pomodoro</h1>
+          <h1 className="text-3xl font-bold text-base-content">Pomodash</h1>
           <p className="text-base-content/60 text-sm">
             Focus deeply. Rest intentionally.
           </p>

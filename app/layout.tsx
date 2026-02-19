@@ -7,7 +7,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: { template: "%s | Pomodoro", default: "Pomodoro — Stay Focused" },
+  title: { template: "%s | Pomodash", default: "Pomodash — Stay Focused" },
   description: "A production-grade Pomodoro timer.",
 };
 

@@ -193,7 +193,7 @@ export function LandingPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🍅</span>
-          <span className="font-bold text-lg tracking-tight">Pomodoro</span>
+          <span className="font-bold text-lg tracking-tight">Pomodash</span>
         </div>
         <button
           onClick={handleSignIn}
@@ -371,7 +371,7 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-white/20 text-sm">
           <div className="flex items-center gap-2">
             <span>🍅</span>
-            <span>Pomodoro</span>
+            <span>Pomodash</span>
           </div>
           <span>Focus deeply. Rest intentionally.</span>
         </div>
