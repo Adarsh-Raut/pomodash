@@ -133,7 +133,7 @@ export default async function StatsPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold">Statistics</h1>
         <p className="text-base-content/40 text-sm mt-1">

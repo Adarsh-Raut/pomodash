@@ -33,7 +33,7 @@ export function DashboardClient({
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
       <div className="lg:col-span-2 space-y-6">
         <TimerCard
           settings={settings}
@@ -47,7 +47,6 @@ export function DashboardClient({
           onTasksChange={setTasks}
         />
       </div>
-
       <div className="space-y-6">
         <div className="card bg-base-100 shadow">
           <div className="card-body">
