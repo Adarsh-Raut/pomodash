@@ -46,6 +46,25 @@ export function TimerCard({
     setActiveTaskId(activeTaskId);
   }, [activeTaskId]);
 
+  useEffect(() => {
+    if (state.status === "running" || state.status === "paused") {
+      const minutes = Math.floor(state.timeRemaining / 60);
+      const seconds = state.timeRemaining % 60;
+      const time = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      const label =
+        state.mode === "focus"
+          ? activeTaskTitle
+            ? `— ${activeTaskTitle}`
+            : "— Pomodash"
+          : state.mode === "short_break"
+            ? "— Short Break"
+            : "— Long Break";
+      document.title = `${time} ${label}`;
+    } else {
+      document.title = "Pomodash — Stay Focused";
+    }
+  }, [state.timeRemaining, state.status, state.mode, activeTaskTitle]);
+
   const config = modeConfig[state.mode];
   const totalDuration =
     state.mode === "focus"
