@@ -135,8 +135,11 @@ export async function getTaskStats() {
       completed: task.completed,
       estimatedPomodoros: task.estimatedPomodoros,
       completedPomodoros: task.completedPomodoros,
-      totalFocusTime: task.sessions.reduce((acc, s) => acc + s.duration, 0),
+      totalFocusTime: task.sessions.reduce(
+        (acc: number, s: { duration: number }) => acc + s.duration,
+        0,
+      ),
       sessionCount: task.sessions.length,
     }))
-    .filter((t) => t.totalFocusTime > 0); // only tasks with actual time
+    .filter((t: { totalFocusTime: number }) => t.totalFocusTime > 0);
 }
