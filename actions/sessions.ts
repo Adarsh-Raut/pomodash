@@ -116,7 +116,7 @@ export async function getLeaderboard() {
     image: string | null;
   };
   const userMap = new Map(users.map((u: LeaderboardUser) => [u.id, u]));
-  return results.map((r, index) => ({
+  return results.map((r: (typeof results)[number], index: number) => ({
     rank: index + 1,
     userId: r.userId,
     name: userMap.get(r.userId)?.name ?? "Anonymous",
