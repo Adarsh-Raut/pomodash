@@ -104,7 +104,7 @@ export async function getLeaderboard() {
   });
 
   // Fetch user info for each result
-  const userIds = results.map((r) => r.userId);
+  const userIds = results.map((r: { userId: string }) => r.userId);
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, image: true },
