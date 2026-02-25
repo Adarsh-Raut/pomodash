@@ -115,7 +115,9 @@ export async function getLeaderboard() {
     name: string | null;
     image: string | null;
   };
-  const userMap = new Map(users.map((u: LeaderboardUser) => [u.id, u]));
+  const userMap = new Map<string, LeaderboardUser>(
+    users.map((u: LeaderboardUser) => [u.id, u]),
+  );
   return results.map((r: (typeof results)[number], index: number) => ({
     rank: index + 1,
     userId: r.userId,
