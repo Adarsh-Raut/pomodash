@@ -1,4 +1,3 @@
-// src/components/timer/TimerDisplay.tsx
 "use client";
 
 import { motion } from "framer-motion";
@@ -21,7 +20,10 @@ export function TimerDisplay({
   status,
   mode,
 }: TimerDisplayProps) {
-  const progress = timeRemaining / totalDuration;
+  // Guard against division by zero or mismatched state on first render
+  const safeTotal = totalDuration > 0 ? totalDuration : 1;
+  const safeRemaining = Math.min(timeRemaining, safeTotal);
+  const progress = safeRemaining / safeTotal;
   const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 
   const strokeColor =
@@ -34,7 +36,6 @@ export function TimerDisplay({
   return (
     <div className="flex justify-center">
       <div className="relative w-56 h-56">
-        {/* SVG circular progress */}
         <svg
           className="w-full h-full -rotate-90"
           viewBox="0 0 200 200"
@@ -49,7 +50,7 @@ export function TimerDisplay({
             className="stroke-base-300"
             strokeWidth="8"
           />
-          {/* Progress */}
+          {/* Progress — no animation on first render, only animate when running */}
           <motion.circle
             cx="100"
             cy="100"
@@ -59,21 +60,20 @@ export function TimerDisplay({
             strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={strokeDashoffset}
             animate={{ strokeDashoffset }}
-            transition={{ duration: 0.5, ease: "linear" }}
+            transition={
+              status === "running"
+                ? { duration: 0.5, ease: "linear" }
+                : { duration: 0 } // instant update when idle/paused — no flash
+            }
           />
         </svg>
 
-        {/* Time display centered */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span
-            key={Math.floor(timeRemaining / 60)} // Re-animate on minute change
-            initial={{ scale: 1.1, opacity: 0.7 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="text-5xl font-bold tabular-nums text-base-content"
-          >
+          <span className="text-5xl font-bold tabular-nums text-base-content">
             {formatTime(timeRemaining)}
-          </motion.span>
+          </span>
           <span className="text-sm text-base-content/50 mt-1">
             {status === "running"
               ? "focusing..."

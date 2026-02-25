@@ -83,7 +83,11 @@ export function TimerCard({
         className={cn("h-1.5 w-full", config.color)}
         animate={{ scaleX: progress / 100 }}
         style={{ transformOrigin: "left" }}
-        transition={{ duration: 0.5, ease: "linear" }}
+        transition={
+          state.status === "running"
+            ? { duration: 0.5, ease: "linear" }
+            : { duration: 0 }
+        }
       />
 
       <div className="card-body gap-6 py-8">
