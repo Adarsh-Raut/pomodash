@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { getUserSettings } from "@/actions/settings";
 import { getRecentSessions, getSessionStats } from "@/actions/sessions";

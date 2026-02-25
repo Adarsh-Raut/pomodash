@@ -1,4 +1,7 @@
 // src/app/(dashboard)/settings/page.tsx
+
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { getUserSettings } from "@/actions/settings";
 import { SettingsForm } from "@/components/settings/SettingsForm";

@@ -1,4 +1,7 @@
 // app/(dashboard)/leaderboard/page.tsx
+
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { getLeaderboard } from "@/actions/sessions";
 import { formatDuration } from "@/lib/utils";

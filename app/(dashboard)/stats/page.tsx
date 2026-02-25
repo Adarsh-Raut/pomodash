@@ -1,4 +1,7 @@
 // app/(dashboard)/stats/page.tsx
+
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { getSessionStats } from "@/actions/sessions";
