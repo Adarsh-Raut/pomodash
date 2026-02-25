@@ -17,8 +17,17 @@ export default async function DashboardPage() {
     getSessionStats("day"),
   ]);
 
-  const completed = todaySessions.filter((s) => s.completed);
-  const totalFocusTime = completed.reduce((acc, s) => acc + s.duration, 0);
+  const completed = todaySessions.filter(
+    (s: { completed: boolean; duration: number; startedAt: Date }) =>
+      s.completed,
+  );
+  const totalFocusTime = completed.reduce(
+    (
+      acc: number,
+      s: { completed: boolean; duration: number; startedAt: Date },
+    ) => acc + s.duration,
+    0,
+  );
 
   const todayStats = {
     focusTime: formatDuration(totalFocusTime),
