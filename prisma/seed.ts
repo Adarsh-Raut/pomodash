@@ -36,7 +36,16 @@ async function main() {
     { name: "Yuki Tanaka", email: "yuki@example.com" },
   ];
 
-  const createdUsers = [];
+  const createdUsers: {
+    id: string;
+    name: string | null;
+    email: string;
+    emailVerified: Date | null;
+    image: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }[] = [];
+
   for (const u of fakeUsers) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
@@ -196,7 +205,15 @@ async function main() {
     }
 
     // Also seed some leaderboard sessions not tied to tasks (older activity)
-    const leaderboardSessions = [];
+    const leaderboardSessions: {
+      userId: string;
+      taskId: null;
+      type: "FOCUS";
+      duration: number;
+      completed: boolean;
+      startedAt: Date;
+      completedAt: Date;
+    }[] = [];
     for (let day = 7; day >= 1; day--) {
       const dailyPomos = randomInt(3, 9);
       for (let p = 0; p < dailyPomos; p++) {
