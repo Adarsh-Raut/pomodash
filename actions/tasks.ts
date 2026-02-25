@@ -129,7 +129,7 @@ export async function getTaskStats() {
   });
 
   return tasks
-    .map((task) => ({
+    .map((task: (typeof tasks)[number]) => ({
       id: task.id,
       title: task.title,
       completed: task.completed,
