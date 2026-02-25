@@ -122,3 +122,20 @@ export async function getLeaderboard() {
     isCurrentUser: r.userId === session.user.id,
   }));
 }
+
+export async function getSessionsInRange(start: Date, end: Date) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  return prisma.pomodoroSession.findMany({
+    where: {
+      userId: session.user.id,
+      type: "FOCUS",
+      completed: true,
+      startedAt: { gte: start, lte: end },
+      taskId: { not: null },
+    },
+    include: { task: { select: { id: true, title: true } } },
+    orderBy: { startedAt: "asc" },
+  });
+}
