@@ -45,7 +45,7 @@ export default async function LeaderboardPage() {
           <div className="card-body items-center text-center py-16">
             {/* <span className="text-5xl">🍅</span> */}
             <Image
-              src="/icon.png"
+              src="/tomato.png"
               alt="Pomodash"
               width={48}
               height={48}
