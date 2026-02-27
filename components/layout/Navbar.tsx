@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { Settings, LogOut } from "lucide-react";
 
 interface NavbarProps {
   user: {
@@ -53,7 +54,14 @@ export function Navbar({ user }: NavbarProps) {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <span className="text-xl">🍅</span>
+              {/* <span className="text-xl">🍅</span> */}
+              <Image
+                src="/tomato.png"
+                alt="Pomodash"
+                width={28}
+                height={28}
+                className="rounded-sm"
+              />
               <span className="font-bold text-base tracking-tight">
                 Pomodash
               </span>
@@ -148,6 +156,7 @@ export function Navbar({ user }: NavbarProps) {
                     href="/settings"
                     className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-base-200 transition-colors"
                   >
+                    <Settings className="w-4 h-4 text-base-content/40" />
                     Settings
                   </Link>
                 </li>
@@ -156,6 +165,7 @@ export function Navbar({ user }: NavbarProps) {
                     onClick={() => signOut({ callbackUrl: "/login" })}
                     className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors"
                   >
+                    <LogOut className="w-4 h-4" />
                     Sign out
                   </button>
                 </li>
@@ -246,8 +256,9 @@ export function Navbar({ user }: NavbarProps) {
           <div className="px-3 py-2 border-t border-base-300">
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="w-full flex items-center px-3 py-2.5 rounded-md text-sm font-medium text-error hover:bg-error/10 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-error hover:bg-error/10 transition-colors"
             >
+              <LogOut className="w-4 h-4" />
               Sign out
             </button>
           </div>

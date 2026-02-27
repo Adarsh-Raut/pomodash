@@ -43,7 +43,14 @@ export default async function LeaderboardPage() {
       {entries.length === 0 && (
         <div className="card bg-base-100 shadow">
           <div className="card-body items-center text-center py-16">
-            <span className="text-5xl">🍅</span>
+            {/* <span className="text-5xl">🍅</span> */}
+            <Image
+              src="/icon.png"
+              alt="Pomodash"
+              width={48}
+              height={48}
+              className="opacity-40"
+            />
             <h2 className="card-title mt-4">No data yet</h2>
             <p className="text-base-content/50 text-sm">
               Be the first to complete a focus session!

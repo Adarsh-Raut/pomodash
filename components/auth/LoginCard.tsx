@@ -4,6 +4,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export function LoginCard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +30,14 @@ export function LoginCard() {
         {/* Logo / Brand */}
         <div className="flex flex-col items-center gap-2">
           <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
-            <span className="text-3xl">🍅</span>
+            {/* <span className="text-3xl">🍅</span> */}
+            <Image
+              src="/tomato.png"
+              alt="Pomodash"
+              width={28}
+              height={28}
+              className="rounded-sm"
+            />
           </div>
           <h1 className="text-3xl font-bold text-base-content">Pomodash</h1>
           <p className="text-base-content/60 text-sm">

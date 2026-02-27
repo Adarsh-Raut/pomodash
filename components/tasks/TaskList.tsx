@@ -299,7 +299,7 @@ export function TaskList({
                 animate={{ opacity: 1 }}
                 className="text-sm text-base-content/40 text-center py-6"
               >
-                Add a task to get started 🍅
+                Add a task to get started!
               </motion.p>
             )}
             {tasks.map((task) => (

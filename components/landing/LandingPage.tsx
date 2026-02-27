@@ -4,6 +4,7 @@
 import { signIn } from "next-auth/react";
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import Image from "next/image";
 
 const features = [
   {
@@ -192,7 +193,14 @@ export function LandingPage() {
       {/* Top nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🍅</span>
+          {/* <span className="text-2xl">🍅</span> */}
+          <Image
+            src="/tomato.png"
+            alt="Pomodash"
+            width={28}
+            height={28}
+            className="rounded-sm"
+          />
           <span className="font-bold text-lg tracking-tight">Pomodash</span>
         </div>
         <button
@@ -370,7 +378,14 @@ export function LandingPage() {
       <footer className="relative z-10 border-t border-white/10 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-white/20 text-sm">
           <div className="flex items-center gap-2">
-            <span>🍅</span>
+            {/* <span>🍅</span> */}
+            <Image
+              src="/tomato.png"
+              alt="Pomodash"
+              width={28}
+              height={28}
+              className="rounded-sm"
+            />
             <span>Pomodash</span>
           </div>
           <span>Focus deeply. Rest intentionally.</span>

@@ -9,6 +9,10 @@ const inter = Inter({ subsets: ["latin"], display: "swap" });
 export const metadata: Metadata = {
   title: { template: "%s | Pomodash", default: "Pomodash — Stay Focused" },
   description: "A production-grade Pomodoro timer.",
+  icons: {
+    icon: "/tomato.png",
+    apple: "/tomato.png",
+  },
 };
 
 export default function RootLayout({
@@ -31,6 +35,7 @@ export default function RootLayout({
             `,
           }}
         />
+        <link rel="icon" href="/tomato.png" />
       </head>
       <body className={`${inter.className} antialiased`}>
         <SessionProvider>

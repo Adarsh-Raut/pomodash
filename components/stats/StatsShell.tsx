@@ -8,6 +8,7 @@ import {
 import { formatDuration } from "@/lib/utils";
 import { getSessionsInRange } from "@/actions/sessions";
 import { motion, AnimatePresence } from "framer-motion";
+import { Timer, TrendingUp, Flame, CheckSquare } from "lucide-react";
 
 type Period = "week" | "month" | "year";
 
@@ -239,28 +240,32 @@ export function StatsShell({
             value: formatDuration(initialCards.totalFocusTime),
             sub: `${initialCards.completedSessions} sessions`,
             color: "#60a5fa",
-            icon: "⏱",
+            icon: <Timer className="w-5 h-5" style={{ color: "#60a5fa" }} />,
           },
           {
             label: "Daily Avg",
             value: formatDuration(Math.round(initialCards.totalFocusTime / 7)),
             sub: "per day",
             color: "#34d399",
-            icon: "📈",
+            icon: (
+              <TrendingUp className="w-5 h-5" style={{ color: "#34d399" }} />
+            ),
           },
           {
             label: "Streak",
             value: `${initialCards.currentStreak}d`,
             sub: `Best: ${initialCards.longestStreak}d`,
             color: "#fbbf24",
-            icon: "🔥",
+            icon: <Flame className="w-5 h-5" style={{ color: "#fbbf24" }} />,
           },
           {
             label: "Tasks",
             value: initialCards.tasksTracked.toString(),
             sub: `${initialCards.tasksCompleted} completed`,
             color: "#a78bfa",
-            icon: "✅",
+            icon: (
+              <CheckSquare className="w-5 h-5" style={{ color: "#a78bfa" }} />
+            ),
           },
         ].map(({ label, value, sub, color, icon }) => (
           <div key={label} className="card bg-base-100 shadow">
