@@ -2,6 +2,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
+import { Suspense } from "react";
 
 export default async function DashboardLayout({
   children,
@@ -15,7 +16,9 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-base-200">
       <Navbar user={session.user} />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">{children}</main>
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <Suspense fallback={null}>{children}</Suspense>
+      </main>
     </div>
   );
 }

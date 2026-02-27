@@ -1,7 +1,6 @@
-// components/stats/StatsShell.tsx
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   TaskStackedChart,
   type DayTaskData,
@@ -29,50 +28,41 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "year", label: "Year" },
 ];
 
-// Get display label for the navigator
 function getPeriodLabel(period: Period, offset: number): string {
   const now = new Date();
-
   if (period === "week") {
     const dayOfWeek = (now.getDay() + 6) % 7;
     const monday = new Date(now);
     monday.setDate(now.getDate() - dayOfWeek - offset * 7);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-
     if (offset === 0) return "This Week";
     if (offset === 1) return "Last Week";
-
-    // Show date range for older weeks
     const fmt = (d: Date) =>
       d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
     return `${fmt(monday)} – ${fmt(sunday)}`;
   }
-
   if (period === "month") {
     const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
     if (offset === 0) return "This Month";
     if (offset === 1) return "Last Month";
     return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
-
-  if (period === "year") {
-    const year = now.getFullYear() - offset;
-    if (offset === 0) return "This Year";
-    if (offset === 1) return "Last Year";
-    return String(year);
-  }
-
-  return "";
+  const year = now.getFullYear() - offset;
+  if (offset === 0) return "This Year";
+  if (offset === 1) return "Last Year";
+  return String(year);
 }
 
-// Get start/end for any period+offset
 function getDateRange(
   period: Period,
   offset: number,
-): { start: Date; end: Date; buckets: { date: string; dateObj: Date }[] } {
+): {
+  start: Date;
+  end: Date;
+  buckets: { date: string; dateObj: Date }[];
+} {
   const now = new Date();
-
   const startOfDay = (d: Date) => {
     const c = new Date(d);
     c.setHours(0, 0, 0, 0);
@@ -90,7 +80,6 @@ function getDateRange(
     monday.setDate(now.getDate() - dayOfWeek - offset * 7);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-
     const buckets = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
@@ -101,7 +90,6 @@ function getDateRange(
           ` (${d.toLocaleDateString("en-US", { weekday: "short" })})`,
       };
     });
-
     return { start: startOfDay(monday), end: endOfDay(sunday), buckets };
   }
 
@@ -110,24 +98,19 @@ function getDateRange(
     const month = now.getMonth() - offset;
     const start = new Date(year, month, 1);
     const end = new Date(year, month + 1, 0);
-    const daysInMonth = end.getDate();
-
-    const buckets = Array.from({ length: daysInMonth }, (_, i) => {
+    const buckets = Array.from({ length: end.getDate() }, (_, i) => {
       const d = new Date(year, month, i + 1);
       return {
         dateObj: startOfDay(d),
         date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       };
     });
-
     return { start: startOfDay(start), end: endOfDay(end), buckets };
   }
 
-  // year
   const year = now.getFullYear() - offset;
   const start = new Date(year, 0, 1);
   const end = new Date(year, 11, 31);
-
   const buckets = Array.from({ length: 12 }, (_, m) => {
     const d = new Date(year, m, 1);
     return {
@@ -135,7 +118,6 @@ function getDateRange(
       date: d.toLocaleDateString("en-US", { month: "short" }),
     };
   });
-
   return { start: startOfDay(start), end: endOfDay(end), buckets };
 }
 
@@ -161,62 +143,76 @@ interface TaskStat {
 interface StatsShellProps {
   initialCards: StatCards;
   taskStats: TaskStat[];
+  initialChartData: DayTaskData[];
+  initialTasks: { id: string; title: string }[];
 }
 
-export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
+export function StatsShell({
+  initialCards,
+  taskStats,
+  initialChartData,
+  initialTasks,
+}: StatsShellProps) {
   const [period, setPeriod] = useState<Period>("week");
   const [offset, setOffset] = useState(0);
-  const [chartData, setChartData] = useState<DayTaskData[]>([]);
-  const [tasks, setTasks] = useState<{ id: string; title: string }[]>([]);
+  const [chartData, setChartData] = useState<DayTaskData[]>(initialChartData);
+  const [tasks, setTasks] =
+    useState<{ id: string; title: string }[]>(initialTasks);
   const [isPending, startTransition] = useTransition();
+  const [hasFetched, setHasFetched] = useState(false);
 
-  useEffect(() => {
-    startTransition(async () => {
-      const { start, end, buckets } = getDateRange(period, offset);
-      const sessions = await getSessionsInRange(start, end);
+  async function fetchChartData(newPeriod: Period, newOffset: number) {
+    const { start, end, buckets } = getDateRange(newPeriod, newOffset);
+    const sessions = await getSessionsInRange(start, end);
 
-      const taskMap = new Map<string, { id: string; title: string }>();
-      sessions.forEach((s) => {
-        if (s.task) taskMap.set(s.task.id, s.task);
-      });
-      const uniqueTasks = Array.from(taskMap.values());
-      setTasks(uniqueTasks);
-
-      const data: DayTaskData[] = buckets.map(({ date, dateObj }) => {
-        const row: DayTaskData = { date };
-        uniqueTasks.forEach((task) => {
-          let secs = 0;
-          if (period === "year") {
-            secs = sessions
-              .filter(
-                (s) =>
-                  s.taskId === task.id &&
-                  new Date(s.startedAt).getMonth() === dateObj.getMonth() &&
-                  new Date(s.startedAt).getFullYear() === dateObj.getFullYear(),
-              )
-              .reduce((acc, s) => acc + s.duration, 0);
-          } else {
-            secs = sessions
-              .filter(
-                (s) =>
-                  s.taskId === task.id &&
-                  new Date(s.startedAt).toDateString() ===
-                    dateObj.toDateString(),
-              )
-              .reduce((acc, s) => acc + s.duration, 0);
-          }
-          row[task.id] = Math.round(secs / 60);
-        });
-        return row;
-      });
-
-      setChartData(data);
+    const taskMap = new Map<string, { id: string; title: string }>();
+    sessions.forEach((s) => {
+      if (s.task) taskMap.set(s.task.id, s.task);
     });
-  }, [period, offset]);
+    const uniqueTasks = Array.from(taskMap.values());
+    setTasks(uniqueTasks);
+
+    const data: DayTaskData[] = buckets.map(({ date, dateObj }) => {
+      const row: DayTaskData = { date };
+      uniqueTasks.forEach((task) => {
+        let secs = 0;
+        if (newPeriod === "year") {
+          secs = sessions
+            .filter(
+              (s) =>
+                s.taskId === task.id &&
+                new Date(s.startedAt).getMonth() === dateObj.getMonth() &&
+                new Date(s.startedAt).getFullYear() === dateObj.getFullYear(),
+            )
+            .reduce((acc, s) => acc + s.duration, 0);
+        } else {
+          secs = sessions
+            .filter(
+              (s) =>
+                s.taskId === task.id &&
+                new Date(s.startedAt).toDateString() === dateObj.toDateString(),
+            )
+            .reduce((acc, s) => acc + s.duration, 0);
+        }
+        row[task.id] = Math.round(secs / 60);
+      });
+      return row;
+    });
+
+    setChartData(data);
+  }
 
   const handlePeriodChange = (p: Period) => {
     setPeriod(p);
     setOffset(0);
+    setHasFetched(true);
+    startTransition(() => fetchChartData(p, 0));
+  };
+
+  const handleOffsetChange = (newOffset: number) => {
+    setOffset(newOffset);
+    setHasFetched(true);
+    startTransition(() => fetchChartData(period, newOffset));
   };
 
   const label = getPeriodLabel(period, offset);
@@ -287,7 +283,6 @@ export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
       {/* Chart card */}
       <div className="card bg-base-100 shadow">
         <div className="card-body p-6 gap-5">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="font-bold">Focus Time by Task</h2>
@@ -297,7 +292,6 @@ export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
             </div>
 
             <div className="flex flex-col items-end gap-2">
-              {/* Period pills */}
               <div className="flex rounded-lg border border-base-300 overflow-hidden">
                 {PERIOD_OPTIONS.map(({ value, label: pLabel }) => (
                   <button
@@ -314,10 +308,9 @@ export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
                 ))}
               </div>
 
-              {/* Arrow navigator */}
               <div className="flex items-center rounded-lg border border-base-300 overflow-hidden">
                 <button
-                  onClick={() => setOffset((o) => o + 1)}
+                  onClick={() => handleOffsetChange(offset + 1)}
                   className="px-3 py-1.5 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors border-r border-base-300"
                   aria-label="Previous period"
                 >
@@ -332,13 +325,11 @@ export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
                     <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
-
                 <span className="px-4 py-1.5 text-sm font-medium min-w-[140px] text-center">
                   {label}
                 </span>
-
                 <button
-                  onClick={() => setOffset((o) => Math.max(0, o - 1))}
+                  onClick={() => handleOffsetChange(Math.max(0, offset - 1))}
                   disabled={offset === 0}
                   className="px-3 py-1.5 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors border-l border-base-300 disabled:opacity-30 disabled:cursor-not-allowed"
                   aria-label="Next period"
@@ -358,7 +349,6 @@ export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
             </div>
           </div>
 
-          {/* Chart */}
           <div className="relative min-h-[280px]">
             <AnimatePresence mode="wait">
               <motion.div
@@ -368,12 +358,16 @@ export function StatsShell({ initialCards, taskStats }: StatsShellProps) {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
               >
-                {isPending ? (
+                {isPending && hasFetched ? (
                   <div className="h-72 flex items-center justify-center">
                     <span className="loading loading-spinner loading-md text-primary" />
                   </div>
                 ) : (
-                  <TaskStackedChart data={chartData} tasks={tasks} />
+                  <TaskStackedChart
+                    data={chartData}
+                    tasks={tasks}
+                    emptyMessage={`No focus sessions in ${getPeriodLabel(period, offset).toLowerCase()}.`}
+                  />
                 )}
               </motion.div>
             </AnimatePresence>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { CreateSessionInput } from "@/types";
+import { unstable_cache } from "next/cache";
 
 // Input validation schema
 const createSessionSchema = z.object({
@@ -68,65 +69,76 @@ export async function getSessionStats(period: "day" | "week" | "month") {
 
   const { getDateRange } = await import("@/lib/utils");
   const { start, end } = getDateRange(period);
+  const userId = session.user.id;
 
-  const sessions = await prisma.pomodoroSession.findMany({
-    where: {
-      userId: session.user.id,
-      startedAt: { gte: start, lte: end },
-      type: "FOCUS",
+  return unstable_cache(
+    async () => {
+      return prisma.pomodoroSession.findMany({
+        where: {
+          userId,
+          startedAt: { gte: start, lte: end },
+          type: "FOCUS",
+        },
+        orderBy: { startedAt: "asc" },
+      });
     },
-    orderBy: { startedAt: "asc" },
-  });
-
-  return sessions;
+    [`sessions-${userId}-${period}`],
+    { revalidate: 60, tags: [`sessions-${userId}`] },
+  )();
 }
-
 // add this to the bottom of actions/sessions.ts
 export async function getLeaderboard() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
-  // Aggregate total completed focus time per user — last 7 days
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const userId = session.user.id;
 
-  const results = await prisma.pomodoroSession.groupBy({
-    by: ["userId"],
-    where: {
-      type: "FOCUS",
-      completed: true,
-      startedAt: { gte: sevenDaysAgo },
+  return unstable_cache(
+    async () => {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const results = await prisma.pomodoroSession.groupBy({
+        by: ["userId"],
+        where: {
+          type: "FOCUS",
+          completed: true,
+          startedAt: { gte: sevenDaysAgo },
+        },
+        _sum: { duration: true },
+        _count: { id: true },
+        orderBy: { _sum: { duration: "desc" } },
+        take: 20,
+      });
+
+      const userIds = results.map((r: (typeof results)[number]) => r.userId);
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, image: true },
+      });
+
+      type LeaderboardUser = {
+        id: string;
+        name: string | null;
+        image: string | null;
+      };
+      const userMap = new Map<string, LeaderboardUser>(
+        users.map((u: LeaderboardUser) => [u.id, u]),
+      );
+
+      return results.map((r: (typeof results)[number], index: number) => ({
+        rank: index + 1,
+        userId: r.userId,
+        name: userMap.get(r.userId)?.name ?? "Anonymous",
+        image: userMap.get(r.userId)?.image ?? null,
+        totalFocusTime: r._sum.duration ?? 0,
+        sessionsCompleted: r._count.id,
+        isCurrentUser: r.userId === userId,
+      }));
     },
-    _sum: { duration: true },
-    _count: { id: true },
-    orderBy: { _sum: { duration: "desc" } },
-    take: 20, // top 20
-  });
-
-  // Fetch user info for each result
-  const userIds = results.map((r: { userId: string }) => r.userId);
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, name: true, image: true },
-  });
-
-  type LeaderboardUser = {
-    id: string;
-    name: string | null;
-    image: string | null;
-  };
-  const userMap = new Map<string, LeaderboardUser>(
-    users.map((u: LeaderboardUser) => [u.id, u]),
-  );
-  return results.map((r: (typeof results)[number], index: number) => ({
-    rank: index + 1,
-    userId: r.userId,
-    name: userMap.get(r.userId)?.name ?? "Anonymous",
-    image: userMap.get(r.userId)?.image ?? null,
-    totalFocusTime: r._sum.duration ?? 0,
-    sessionsCompleted: r._count.id,
-    isCurrentUser: r.userId === session.user.id,
-  }));
+    [`leaderboard-${userId}`],
+    { revalidate: 300, tags: ["leaderboard"] },
+  )();
 }
 
 export async function getSessionsInRange(start: Date, end: Date) {

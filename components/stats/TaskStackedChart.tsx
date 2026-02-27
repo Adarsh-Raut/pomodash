@@ -8,29 +8,29 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { formatDuration } from "@/lib/utils";
 
 interface TaskStackedChartProps {
   data: DayTaskData[];
   tasks: { id: string; title: string }[];
+  emptyMessage?: string;
 }
 
 export interface DayTaskData {
   date: string;
-  [taskId: string]: number | string; // taskId -> minutes
+  [taskId: string]: number | string;
 }
 
 const COLORS = [
-  "#60a5fa", // blue
-  "#34d399", // green
-  "#fbbf24", // amber
-  "#f87171", // red
-  "#a78bfa", // purple
-  "#22d3ee", // cyan
-  "#fb923c", // orange
-  "#e879f9", // pink
+  "#60a5fa",
+  "#34d399",
+  "#fbbf24",
+  "#f87171",
+  "#a78bfa",
+  "#22d3ee",
+  "#fb923c",
+  "#e879f9",
 ];
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -40,6 +40,7 @@ function CustomTooltip({ active, payload, label }: any) {
     (acc: number, p: any) => acc + (p.value || 0),
     0,
   );
+  if (total === 0) return null; // don't show tooltip for empty bars
 
   return (
     <div
@@ -126,11 +127,31 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export function TaskStackedChart({ data, tasks }: TaskStackedChartProps) {
-  if (!data.length || !tasks.length) {
+export function TaskStackedChart({
+  data,
+  tasks,
+  emptyMessage = "No sessions found.",
+}: TaskStackedChartProps) {
+  // Check if there's any actual data (not just empty rows)
+  const hasData =
+    tasks.length > 0 &&
+    data.some((row) => tasks.some((task) => (row[task.id] as number) > 0));
+
+  if (!hasData) {
     return (
-      <div className="h-64 flex items-center justify-center text-base-content/30 text-sm">
-        No task sessions this week yet.
+      <div className="h-64 flex flex-col items-center justify-center gap-2 text-base-content/30">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-10 h-10 opacity-40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18M9 21V9" />
+        </svg>
+        <span className="text-sm">{emptyMessage}</span>
       </div>
     );
   }
@@ -193,18 +214,13 @@ export function TaskStackedChart({ data, tasks }: TaskStackedChartProps) {
               name={task.title}
               stackId="focus"
               fill={`url(#grad-${task.id})`}
-              radius={
-                i === tasks.length - 1
-                  ? [6, 6, 0, 0] // round top of last (topmost) bar only
-                  : [0, 0, 0, 0]
-              }
+              radius={i === tasks.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
               maxBarSize={64}
             />
           ))}
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Custom legend */}
       <div className="flex flex-wrap gap-3 px-1">
         {tasks.map((task, i) => (
           <div key={task.id} className="flex items-center gap-1.5">
