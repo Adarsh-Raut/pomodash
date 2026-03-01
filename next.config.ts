@@ -4,10 +4,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["framer-motion", "recharts"],
   },
-  compiler: {
-    // Remove console.logs in production
-    removeConsole: process.env.NODE_ENV === "production",
-  },
   images: {
     remotePatterns: [
       {
@@ -17,10 +13,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
   async headers() {
     return [
       {
-        // Cache static assets for 1 year
         source: "/_next/static/:path*",
         headers: [
           {
@@ -30,22 +28,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Cache images for 1 week
         source: "/(.*)\\.(png|jpg|jpeg|svg|ico|webp)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=604800, stale-while-revalidate=86400",
-          },
-        ],
-      },
-      {
-        // Allow pages to be cached but revalidated — helps bfcache
-        source: "/((?!api).*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, s-maxage=60, stale-while-revalidate=300",
+            value: "public, max-age=604800",
           },
         ],
       },
