@@ -40,7 +40,7 @@ export function LoginCard() {
             />
           </div>
           <h1 className="text-3xl font-bold text-base-content">Pomodash</h1>
-          <p className="text-base-content/60 text-sm">
+          <p className="text-base-content/70 text-sm">
             Focus deeply. Rest intentionally.
           </p>
         </div>
@@ -80,7 +80,7 @@ export function LoginCard() {
           Continue with Google
         </button>
 
-        <p className="text-xs text-base-content/40">
+        <p className="text-xs text-base-content/70">
           By signing in, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>

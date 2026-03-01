@@ -25,7 +25,7 @@ export default async function LeaderboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Leaderboard</h1>
-        <p className="text-base-content/50 text-sm mt-1">
+        <p className="text-base-content/70 text-sm mt-1">
           Top focus times in the last 7 days
         </p>
       </div>
@@ -33,7 +33,7 @@ export default async function LeaderboardPage() {
       {/* Current user summary if not in top 20 */}
       {!currentUserOnBoard && currentUserEntry && (
         <div className="alert bg-base-200 border border-base-300">
-          <span className="text-sm text-base-content/60">
+          <span className="text-sm text-base-content/70">
             Your rank is not in the top 20 yet. Keep focusing! 💪
           </span>
         </div>
@@ -52,7 +52,7 @@ export default async function LeaderboardPage() {
               className="opacity-40"
             />
             <h2 className="card-title mt-4">No data yet</h2>
-            <p className="text-base-content/50 text-sm">
+            <p className="text-base-content/70 text-sm">
               Be the first to complete a focus session!
             </p>
           </div>
@@ -64,7 +64,7 @@ export default async function LeaderboardPage() {
         <div className="card bg-base-100 shadow overflow-hidden">
           <table className="table">
             <thead>
-              <tr className="border-base-300 text-base-content/50 text-xs uppercase tracking-wider">
+              <tr className="border-base-300 text-base-content/70 text-xs uppercase tracking-wider">
                 <th className="w-12">Rank</th>
                 <th>User</th>
                 <th className="text-right">Sessions</th>
@@ -89,7 +89,7 @@ export default async function LeaderboardPage() {
                     {entry.rank <= 3 ? (
                       <span className="text-xl">{medals[entry.rank - 1]}</span>
                     ) : (
-                      <span className="text-base-content/40 font-mono text-sm">
+                      <span className="text-base-content/70 font-mono text-sm">
                         #{entry.rank}
                       </span>
                     )}
@@ -147,7 +147,7 @@ export default async function LeaderboardPage() {
       )}
 
       {/* Legend */}
-      <p className="text-center text-xs text-base-content/30">
+      <p className="text-center text-xs text-base-content/50">
         Rankings refresh on every page load · Last 7 days · Completed sessions
         only
       </p>

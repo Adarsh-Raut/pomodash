@@ -74,7 +74,7 @@ export function TimerDisplay({
           <span className="text-5xl font-bold tabular-nums text-base-content">
             {formatTime(timeRemaining)}
           </span>
-          <span className="text-sm text-base-content/50 mt-1">
+          <span className="text-sm text-base-content/70 mt-1">
             {status === "running"
               ? "focusing..."
               : status === "paused"

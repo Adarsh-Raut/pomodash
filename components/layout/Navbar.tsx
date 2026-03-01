@@ -78,7 +78,7 @@ export function Navbar({ user }: NavbarProps) {
                   "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   pathname === href
                     ? "bg-primary text-primary-content"
-                    : "text-base-content/60 hover:text-base-content hover:bg-base-200",
+                    : "text-base-content/70 hover:text-base-content hover:bg-base-200",
                 )}
               >
                 {label}
@@ -91,7 +91,7 @@ export function Navbar({ user }: NavbarProps) {
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="btn btn-ghost btn-sm btn-circle text-base-content/60 hover:text-base-content"
+              className="btn btn-ghost btn-sm btn-circle text-base-content/70 hover:text-base-content"
               aria-label="Toggle theme"
             >
               {theme === "light" ? (
@@ -147,7 +147,7 @@ export function Navbar({ user }: NavbarProps) {
               >
                 <li className="px-4 py-3 border-b border-base-300 pointer-events-none">
                   <p className="font-semibold text-sm truncate">{user.name}</p>
-                  <p className="text-xs text-base-content/40 truncate mt-0.5">
+                  <p className="text-xs text-base-content/70 truncate mt-0.5">
                     {user.email}
                   </p>
                 </li>
@@ -156,7 +156,7 @@ export function Navbar({ user }: NavbarProps) {
                     href="/settings"
                     className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-base-200 transition-colors"
                   >
-                    <Settings className="w-4 h-4 text-base-content/40" />
+                    <Settings className="w-4 h-4 text-base-content/70" />
                     Settings
                   </Link>
                 </li>
@@ -175,7 +175,7 @@ export function Navbar({ user }: NavbarProps) {
             {/* Hamburger button — mobile only */}
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="sm:hidden btn btn-ghost btn-sm btn-circle text-base-content/60 hover:text-base-content"
+              className="sm:hidden btn btn-ghost btn-sm btn-circle text-base-content/70 hover:text-base-content"
               aria-label="Toggle menu"
             >
               {menuOpen ? (
@@ -228,7 +228,7 @@ export function Navbar({ user }: NavbarProps) {
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{user.name}</p>
-              <p className="text-xs text-base-content/40 truncate">
+              <p className="text-xs text-base-content/70 truncate">
                 {user.email}
               </p>
             </div>
@@ -244,7 +244,7 @@ export function Navbar({ user }: NavbarProps) {
                   "flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                   pathname === href
                     ? "bg-primary text-primary-content"
-                    : "text-base-content/60 hover:text-base-content hover:bg-base-200",
+                    : "text-base-content/70 hover:text-base-content hover:bg-base-200",
                 )}
               >
                 {label}

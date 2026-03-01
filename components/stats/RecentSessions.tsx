@@ -18,7 +18,7 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
       <div className="card bg-base-100 shadow">
         <div className="card-body">
           <h3 className="card-title text-base">Recent Sessions</h3>
-          <p className="text-sm text-base-content/50">
+          <p className="text-sm text-base-content/70">
             No sessions yet. Start your first pomodoro!
           </p>
         </div>
@@ -45,10 +45,10 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
                   {session.completed ? (
                     <span className="text-success text-xs">✓</span>
                   ) : (
-                    <span className="text-base-content/30 text-xs">—</span>
+                    <span className="text-base-content/50 text-xs">—</span>
                   )}
                 </div>
-                <span className="text-base-content/60 font-mono">
+                <span className="text-base-content/70 font-mono">
                   {formatDuration(session.duration)}
                 </span>
               </li>

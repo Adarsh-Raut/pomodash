@@ -139,7 +139,7 @@ export function TaskStackedChart({
 
   if (!hasData) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center gap-2 text-base-content/30">
+      <div className="h-64 flex flex-col items-center justify-center gap-2 text-base-content/50">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="w-10 h-10 opacity-40"
@@ -228,7 +228,7 @@ export function TaskStackedChart({
               className="w-2.5 h-2.5 rounded-sm shrink-0"
               style={{ background: COLORS[i % COLORS.length] }}
             />
-            <span className="text-xs text-base-content/60 truncate max-w-[140px]">
+            <span className="text-xs text-base-content/70 truncate max-w-[140px]">
               {task.title}
             </span>
           </div>

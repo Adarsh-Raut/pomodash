@@ -58,7 +58,7 @@ function AddTaskForm({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-base-300 text-base-content/40 hover:border-primary/50 hover:text-primary transition-all text-sm font-medium"
+        className="w-full flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-base-300 text-base-content/70 hover:border-primary/50 hover:text-primary transition-all text-sm font-medium"
       >
         <span className="text-lg leading-none">+</span>
         Add task
@@ -83,7 +83,7 @@ function AddTaskForm({
         maxLength={200}
       />
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-base-content/50">Est. pomodoros:</span>
+        <span className="text-xs text-base-content/70">Est. pomodoros:</span>
         {[1, 2, 3, 4, 5, 6, 8].map((n) => (
           <button
             key={n}
@@ -93,7 +93,7 @@ function AddTaskForm({
               "w-7 h-7 rounded-lg text-xs font-bold transition-colors",
               estimated === n
                 ? "bg-primary text-primary-content"
-                : "bg-base-200 text-base-content/60 hover:bg-base-300",
+                : "bg-base-200 text-base-content/70 hover:bg-base-300",
             )}
           >
             {n}
@@ -180,7 +180,7 @@ function TaskItem({
             completed={task.completedPomodoros}
             estimated={task.estimatedPomodoros}
           />
-          <span className="text-xs text-base-content/40">
+          <span className="text-xs text-base-content/70">
             {task.completedPomodoros}/{task.estimatedPomodoros}
           </span>
         </div>
@@ -266,12 +266,12 @@ export function TaskList({
             {activeTaskId && (
               <button
                 onClick={() => onSelectTask(null)}
-                className="text-xs text-base-content/40 hover:text-base-content transition-colors"
+                className="text-xs text-base-content/70 hover:text-base-content transition-colors"
               >
                 Deselect
               </button>
             )}
-            <span className="text-xs text-base-content/30">
+            <span className="text-xs text-base-content/70">
               {tasks.length} task{tasks.length !== 1 ? "s" : ""}
             </span>
           </div>
@@ -297,7 +297,7 @@ export function TaskList({
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm text-base-content/40 text-center py-6"
+                className="text-sm text-base-content/70 text-center py-6"
               >
                 Add a task to get started!
               </motion.p>

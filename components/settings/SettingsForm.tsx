@@ -55,7 +55,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
         <label className="label py-0">
           <span className="label-text font-medium">{label}</span>
           {hint && (
-            <span className="label-text-alt text-base-content/40">{hint}</span>
+            <span className="label-text-alt text-base-content/70">{hint}</span>
           )}
         </label>
         <div className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             }}
             className="input input-bordered w-24 text-center font-mono text-lg"
           />
-          <span className="text-sm text-base-content/50">minutes</span>
+          <span className="text-sm text-base-content/70">minutes</span>
         </div>
       </div>
     );
@@ -101,7 +101,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
         <label className="label py-0">
           <span className="label-text font-medium">{label}</span>
           {hint && (
-            <span className="label-text-alt text-base-content/40">{hint}</span>
+            <span className="label-text-alt text-base-content/70">{hint}</span>
           )}
         </label>
         <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             }}
             className="input input-bordered w-24 text-center font-mono text-lg"
           />
-          <span className="text-sm text-base-content/50">{unit}</span>
+          <span className="text-sm text-base-content/70">{unit}</span>
         </div>
       </div>
     );
@@ -203,7 +203,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
               <div className="flex items-center gap-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4 text-base-content/40 shrink-0"
+                  className="w-4 h-4 text-base-content/70 shrink-0"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -227,7 +227,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                 />
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4 text-base-content/40 shrink-0"
+                  className="w-4 h-4 text-base-content/70 shrink-0"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"

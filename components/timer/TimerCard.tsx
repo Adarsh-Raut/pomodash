@@ -118,7 +118,7 @@ export function TimerCard({
               animate={{ opacity: 1 }}
               className="flex items-center justify-center"
             >
-              <span className="text-sm text-base-content/30">
+              <span className="text-sm text-base-content/70">
                 No task selected
               </span>
             </motion.div>
@@ -157,11 +157,11 @@ export function TimerCard({
             >
               <button
                 disabled
-                className="btn btn-wide btn-disabled text-base-content/30 text-lg h-14"
+                className="btn btn-wide btn-disabled text-base-content/50 text-lg h-14"
               >
                 Select a task first
               </button>
-              <p className="text-xs text-base-content/30">
+              <p className="text-xs text-base-content/70">
                 Pick a task below to begin focusing
               </p>
             </motion.div>

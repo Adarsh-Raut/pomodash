@@ -36,7 +36,7 @@ export async function StatsOverview({ userId }: { userId: string }) {
           {stats.map(({ label, value, color }) => (
             <div key={label} className="text-center">
               <div className={`text-2xl font-bold ${color}`}>{value}</div>
-              <div className="text-xs text-base-content/50 mt-1">{label}</div>
+              <div className="text-xs text-base-content/70 mt-1">{label}</div>
             </div>
           ))}
         </div>

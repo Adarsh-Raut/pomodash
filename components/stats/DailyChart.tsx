@@ -47,7 +47,7 @@ function CustomTooltip({ active, payload, label }: any) {
 export function DailyChart({ data }: DailyChartProps) {
   if (!data.length) {
     return (
-      <div className="h-48 flex items-center justify-center text-base-content/30 text-sm">
+      <div className="h-48 flex items-center justify-center text-base-content/50 text-sm">
         No sessions this week yet.
       </div>
     );

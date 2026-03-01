@@ -227,7 +227,7 @@ export function StatsShell({
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold">Statistics</h1>
-        <p className="text-base-content/40 text-sm mt-1">
+        <p className="text-base-content/70 text-sm mt-1">
           Your focus patterns, visualized.
         </p>
       </div>
@@ -271,7 +271,7 @@ export function StatsShell({
           <div key={label} className="card bg-base-100 shadow">
             <div className="card-body p-5 gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-base-content/40 font-medium uppercase tracking-wider">
+                <span className="text-xs text-base-content/70 font-medium uppercase tracking-wider">
                   {label}
                 </span>
                 <span className="text-xl">{icon}</span>
@@ -279,7 +279,7 @@ export function StatsShell({
               <div className="text-3xl font-black" style={{ color }}>
                 {value}
               </div>
-              <div className="text-xs text-base-content/40">{sub}</div>
+              <div className="text-xs text-base-content/70">{sub}</div>
             </div>
           </div>
         ))}
@@ -291,7 +291,7 @@ export function StatsShell({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="font-bold">Focus Time by Task</h2>
-              <p className="text-xs text-base-content/40 mt-0.5">
+              <p className="text-xs text-base-content/70 mt-0.5">
                 {label} · {formatDuration(totalMins * 60)} total
               </p>
             </div>
@@ -305,7 +305,7 @@ export function StatsShell({
                     className={`px-4 py-1.5 text-sm font-medium transition-colors ${
                       period === value
                         ? "bg-primary text-primary-content"
-                        : "text-base-content/60 hover:text-base-content hover:bg-base-200"
+                        : "text-base-content/70 hover:text-base-content hover:bg-base-200"
                     }`}
                   >
                     {pLabel}
@@ -316,7 +316,7 @@ export function StatsShell({
               <div className="flex items-center rounded-lg border border-base-300 overflow-hidden">
                 <button
                   onClick={() => handleOffsetChange(offset + 1)}
-                  className="px-3 py-1.5 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors border-r border-base-300"
+                  className="px-3 py-1.5 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors border-r border-base-300"
                   aria-label="Previous period"
                 >
                   <svg
@@ -336,7 +336,7 @@ export function StatsShell({
                 <button
                   onClick={() => handleOffsetChange(Math.max(0, offset - 1))}
                   disabled={offset === 0}
-                  className="px-3 py-1.5 text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors border-l border-base-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors border-l border-base-300 disabled:opacity-30 disabled:cursor-not-allowed"
                   aria-label="Next period"
                 >
                   <svg
@@ -389,7 +389,7 @@ export function StatsShell({
           <div className="overflow-x-auto mt-4">
             <table className="table table-zebra">
               <thead>
-                <tr className="text-xs uppercase text-base-content/30 tracking-wider">
+                <tr className="text-xs uppercase text-base-content/50 tracking-wider">
                   <th>Task</th>
                   <th className="text-center">Pomodoros</th>
                   <th className="text-center">Sessions</th>
