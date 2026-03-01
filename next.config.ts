@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["framer-motion", "recharts"],
   },
+  compiler: {
+    // Remove console.logs in production
+    removeConsole: process.env.NODE_ENV === "production",
+  },
   images: {
     remotePatterns: [
       {

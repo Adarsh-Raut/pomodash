@@ -1,20 +1,18 @@
-// app/(dashboard)/leaderboard/page.tsx
-
 export const revalidate = 300;
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { getLeaderboard } from "@/actions/sessions";
 import { formatDuration } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import Image from "next/image";
+import LeaderboardLoading from "./loading";
 
-export const metadata: Metadata = {
-  title: "Leaderboard",
-};
+export const metadata: Metadata = { title: "Leaderboard" };
 
 const medals = ["🥇", "🥈", "🥉"];
 
-export default async function LeaderboardPage() {
+async function LeaderboardContent() {
   const [entries, session] = await Promise.all([getLeaderboard(), auth()]);
 
   const currentUserEntry = entries.find((e) => e.isCurrentUser);
@@ -22,7 +20,6 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Leaderboard</h1>
         <p className="text-base-content/70 text-sm mt-1">
@@ -30,7 +27,6 @@ export default async function LeaderboardPage() {
         </p>
       </div>
 
-      {/* Current user summary if not in top 20 */}
       {!currentUserOnBoard && currentUserEntry && (
         <div className="alert bg-base-200 border border-base-300">
           <span className="text-sm text-base-content/70">
@@ -39,11 +35,9 @@ export default async function LeaderboardPage() {
         </div>
       )}
 
-      {/* Empty state */}
       {entries.length === 0 && (
         <div className="card bg-base-100 shadow">
           <div className="card-body items-center text-center py-16">
-            {/* <span className="text-5xl">🍅</span> */}
             <Image
               src="/tomato.png"
               alt="Pomodash"
@@ -59,7 +53,6 @@ export default async function LeaderboardPage() {
         </div>
       )}
 
-      {/* Leaderboard table */}
       {entries.length > 0 && (
         <div className="card bg-base-100 shadow overflow-hidden">
           <table className="table">
@@ -75,16 +68,12 @@ export default async function LeaderboardPage() {
               {entries.map((entry) => (
                 <tr
                   key={entry.userId}
-                  className={`
-                    border-base-300 transition-colors
-                    ${
-                      entry.isCurrentUser
-                        ? "bg-primary/10 font-semibold"
-                        : "hover:bg-base-200/50"
-                    }
-                  `}
+                  className={`border-base-300 transition-colors ${
+                    entry.isCurrentUser
+                      ? "bg-primary/10 font-semibold"
+                      : "hover:bg-base-200/50"
+                  }`}
                 >
-                  {/* Rank */}
                   <td className="text-center">
                     {entry.rank <= 3 ? (
                       <span className="text-xl">{medals[entry.rank - 1]}</span>
@@ -94,8 +83,6 @@ export default async function LeaderboardPage() {
                       </span>
                     )}
                   </td>
-
-                  {/* User */}
                   <td>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-base-300">
@@ -125,15 +112,11 @@ export default async function LeaderboardPage() {
                       </div>
                     </div>
                   </td>
-
-                  {/* Sessions */}
                   <td className="text-right">
                     <span className="text-sm tabular-nums">
                       {entry.sessionsCompleted}
                     </span>
                   </td>
-
-                  {/* Focus time */}
                   <td className="text-right">
                     <span className="text-sm font-mono tabular-nums text-primary">
                       {formatDuration(entry.totalFocusTime)}
@@ -146,11 +129,18 @@ export default async function LeaderboardPage() {
         </div>
       )}
 
-      {/* Legend */}
       <p className="text-center text-xs text-base-content/50">
         Rankings refresh on every page load · Last 7 days · Completed sessions
         only
       </p>
     </div>
+  );
+}
+
+export default function LeaderboardPage() {
+  return (
+    <Suspense fallback={<LeaderboardLoading />}>
+      <LeaderboardContent />
+    </Suspense>
   );
 }

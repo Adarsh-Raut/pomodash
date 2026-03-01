@@ -1,11 +1,13 @@
 export const revalidate = 60;
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { getSessionStats, getSessionsInRange } from "@/actions/sessions";
 import { getTaskStats } from "@/actions/tasks";
 import { StatsShell } from "@/components/stats/StatsShell";
 import type { DayTaskData } from "@/components/stats/TaskStackedChart";
+import StatsLoading from "./loading";
 
 export const metadata: Metadata = { title: "Stats" };
 
@@ -46,11 +48,10 @@ function calculateStreaks(sessions: { startedAt: Date; completed: boolean }[]) {
   return { currentStreak, longestStreak };
 }
 
-export default async function StatsPage() {
+async function StatsContent() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  // Current week bounds (Monday–Sunday)
   const now = new Date();
   const dayOfWeek = (now.getDay() + 6) % 7;
   const monday = new Date(now);
@@ -75,7 +76,6 @@ export default async function StatsPage() {
   );
   const { currentStreak, longestStreak } = calculateStreaks(weeklySessions);
 
-  // Build initial chart data for this week
   const taskMap = new Map<string, { id: string; title: string }>();
   initialSessions.forEach((s) => {
     if (s.task) taskMap.set(s.task.id, s.task);
@@ -121,5 +121,13 @@ export default async function StatsPage() {
       initialChartData={initialChartData}
       initialTasks={initialTasks}
     />
+  );
+}
+
+export default function StatsPage() {
+  return (
+    <Suspense fallback={<StatsLoading />}>
+      <StatsContent />
+    </Suspense>
   );
 }

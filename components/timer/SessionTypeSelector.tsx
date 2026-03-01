@@ -31,7 +31,7 @@ export function SessionTypeSelector({
             className={cn(
               "tab transition-all duration-200",
               currentMode === value && "tab-active",
-              disabled && "opacity-50 cursor-not-allowed",
+              disabled && "opacity-70 cursor-not-allowed",
             )}
             disabled={disabled}
           >
