@@ -5,9 +5,10 @@ export default function DashboardLoading() {
         {/* Timer skeleton */}
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body gap-6 py-8 items-center">
-            <div className="flex gap-2">
+            {/* Squarish tab selector */}
+            <div className="flex items-center gap-1 bg-base-300 rounded-lg p-1">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="skeleton h-8 w-24 rounded-full" />
+                <div key={i} className="skeleton h-8 w-24 rounded-md" />
               ))}
             </div>
             <div className="skeleton w-56 h-56 rounded-full" />

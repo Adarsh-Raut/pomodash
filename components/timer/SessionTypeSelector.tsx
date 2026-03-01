@@ -23,17 +23,19 @@ export function SessionTypeSelector({
 }: SessionTypeSelectorProps) {
   return (
     <div className="flex justify-center">
-      <div className="tabs tabs-boxed bg-base-200">
+      <div className="flex items-center gap-1 bg-base-300 rounded-lg p-1">
         {modes.map(({ value, label }) => (
           <button
             key={value}
             onClick={() => !disabled && onModeChange(value)}
-            className={cn(
-              "tab transition-all duration-200",
-              currentMode === value && "tab-active",
-              disabled && "opacity-70 cursor-not-allowed",
-            )}
             disabled={disabled}
+            className={cn(
+              "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
+              currentMode === value
+                ? "bg-base-100 text-base-content shadow-sm"
+                : "text-base-content/70 hover:text-base-content",
+              disabled && "cursor-not-allowed opacity-70",
+            )}
           >
             {label}
           </button>
