@@ -53,7 +53,11 @@ export function Navbar({ user }: NavbarProps) {
         <div className="grid grid-cols-3 items-center h-14">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              prefetch={false}
+              className="flex items-center gap-2"
+            >
               {/* <span className="text-xl">🍅</span> */}
               <Image
                 src="/tomato.png"
@@ -74,6 +78,7 @@ export function Navbar({ user }: NavbarProps) {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   pathname === href
@@ -154,6 +159,7 @@ export function Navbar({ user }: NavbarProps) {
                 <li>
                   <Link
                     href="/settings"
+                    prefetch={false}
                     className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-base-200 transition-colors"
                   >
                     <Settings className="w-4 h-4 text-base-content/70" />
@@ -240,6 +246,7 @@ export function Navbar({ user }: NavbarProps) {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 className={cn(
                   "flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                   pathname === href

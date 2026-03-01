@@ -1,36 +1,209 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍅 Pomodash
+
+> A production-grade Pomodoro timer with task tracking, focus analytics, and a global leaderboard.
+
+**[Live Demo](https://pomodashpomo.vercel.app)** · Built with Next.js 15, Prisma 7, and NextAuth v5
+
+---
+
+## Overview
+
+Pomodash helps you stay focused using the Pomodoro technique — 25-minute focus sessions alternating with short breaks. Every session is tracked, every task measured, and your productivity visualized across week, month, and year views.
+
+![Dashboard Preview](public/preview.png)
+
+---
+
+## Features
+
+- 🔐 **Google OAuth** — one-click sign in via NextAuth v5
+- ⏱ **Pomodoro Timer** — focus, short break, and long break modes with custom durations
+- ✅ **Task Management** — create tasks, assign pomodoros, track completion
+- 📊 **Statistics** — stacked bar charts with week / month / year views and arrow navigation
+- 🔥 **Streaks** — current and longest daily focus streaks
+- 🏆 **Leaderboard** — top 20 users by focus time in the last 7 days
+- ⚙️ **Settings** — fully customizable timer durations, auto-start, and sound preferences
+- 🌙 **Dark Mode** — system-aware theme with no flash on load
+- 💀 **Loading Skeletons** — every page streams a skeleton instantly via React Suspense
+- 🚀 **Optimized** — 93 Lighthouse performance, 0ms TBT, 0.6s LCP
+
+---
+
+## Tech Stack
+
+| Layer      | Technology                                           |
+| ---------- | ---------------------------------------------------- |
+| Framework  | Next.js 15 (App Router, Turbopack)                   |
+| Language   | TypeScript (strict mode)                             |
+| Auth       | NextAuth v5 (Google OAuth, Prisma adapter)           |
+| Database   | PostgreSQL via Neon (serverless, connection pooling) |
+| ORM        | Prisma 7 (pg adapter)                                |
+| Styling    | Tailwind CSS + DaisyUI                               |
+| Charts     | Recharts (stacked bar)                               |
+| Animation  | Framer Motion                                        |
+| Deployment | Vercel                                               |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database (local Docker or [Neon](https://neon.tech))
+- Google OAuth credentials
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/Adarsh-Raut/pomodash.git
+cd pomodash
+npm install
+```
+
+### 2. Environment variables
+
+Create `.env.local`:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
+
+AUTH_SECRET="your-random-secret-min-32-chars"
+AUTH_GOOGLE_ID="your-google-client-id"
+AUTH_GOOGLE_SECRET="your-google-client-secret"
+```
+
+### 3. Database setup
+
+```bash
+# Run migrations
+npx prisma migrate deploy
+
+# Generate Prisma client
+npx prisma generate
+
+# (Optional) Seed with sample data
+npm run seed
+```
+
+### 4. Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Google OAuth Setup
 
-## Learn More
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create an OAuth 2.0 Client ID (Web application)
+3. Add authorized origins and redirect URIs:
 
-To learn more about Next.js, take a look at the following resources:
+| Environment | Origin                        | Redirect URI                                           |
+| ----------- | ----------------------------- | ------------------------------------------------------ |
+| Local       | `http://localhost:3000`       | `http://localhost:3000/api/auth/callback/google`       |
+| Production  | `https://your-app.vercel.app` | `https://your-app.vercel.app/api/auth/callback/google` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── (auth)/           # Login page
+│   ├── (dashboard)/      # Protected routes
+│   │   ├── dashboard/    # Timer + tasks
+│   │   ├── stats/        # Analytics
+│   │   ├── leaderboard/  # Rankings
+│   │   └── settings/     # User preferences
+│   └── layout.tsx        # Root layout with theme script
+├── actions/              # Server actions (sessions, tasks, settings)
+├── components/
+│   ├── dashboard/        # DashboardClient, timer context
+│   ├── stats/            # StatsShell, TaskStackedChart
+│   ├── tasks/            # TaskList, TaskItem
+│   ├── timer/            # TimerCard, SessionTypeSelector
+│   ├── layout/           # Navbar
+│   └── settings/         # SettingsForm
+├── lib/
+│   ├── auth.ts           # NextAuth config
+│   ├── prisma.ts         # Prisma client with connection pool
+│   └── utils.ts          # formatDuration, getDateRange, etc.
+└── types/                # Shared TypeScript types
+prisma/
+├── schema.prisma
+├── migrations/
+└── seed.ts
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+### Vercel
+
+1. Push to GitHub
+2. Import project in [Vercel](https://vercel.com)
+3. Add environment variables (same as `.env.local` above, plus `NEXTAUTH_URL` set to your production URL)
+4. Deploy
+
+### Neon Database
+
+1. Create a project at [neon.tech](https://neon.tech)
+2. Enable **Connection Pooling** in the connection settings
+3. Use the **pooler URL** (contains `-pooler` in the hostname) as `DATABASE_URL`
+4. Run migrations against the production database:
+
+```bash
+DATABASE_URL="your-neon-pooler-url" npx prisma migrate deploy
+```
+
+---
+
+## Architecture Notes
+
+### Timer Persistence
+
+The timer runs inside a `TimerProvider` context at the root layout level, so it continues running while navigating between pages.
+
+### Streaming with Suspense
+
+Every dashboard page uses React Suspense to stream a skeleton immediately while async data loads server-side. This gives instant visual feedback on navigation.
+
+### Data Caching
+
+Expensive queries (`getLeaderboard`, `getSessionStats`) are wrapped in `unstable_cache` with per-user cache keys and `revalidatePath` invalidation on new sessions.
+
+### Connection Pooling
+
+Prisma uses Neon's pooler endpoint with `pg.Pool` to share connections across serverless function invocations, significantly reducing cold start latency.
+
+---
+
+## Scripts
+
+```bash
+npm run dev          # Start development server (Turbopack)
+npm run build        # Production build
+npm run start        # Start production server
+npm run seed         # Seed database with sample users and sessions
+npx prisma studio    # Open Prisma database GUI
+npx prisma migrate dev      # Create and apply a new migration
+npx prisma migrate deploy   # Apply migrations to production
+```
+
+---
+
+## Author
+
+**Adarsh Raut** — Full Stack Developer
+
+---
+
+## License
+
+MIT
