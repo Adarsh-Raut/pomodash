@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import {
-  TaskStackedChart,
-  type DayTaskData,
-} from "@/components/stats/TaskStackedChart";
 import { formatDuration } from "@/lib/utils";
-import { getSessionsInRange } from "@/actions/sessions";
+import { getChartData, type ChartData } from "@/actions/sessions";
 import { motion, AnimatePresence } from "framer-motion";
 import { Timer, TrendingUp, Flame, CheckSquare } from "lucide-react";
+import { TaskStackedChart, type DayTaskData } from "@/components/stats/TaskStackedChart";
 
 type Period = "week" | "month" | "year";
 
@@ -55,73 +52,6 @@ function getPeriodLabel(period: Period, offset: number): string {
   return String(year);
 }
 
-function getDateRange(
-  period: Period,
-  offset: number,
-): {
-  start: Date;
-  end: Date;
-  buckets: { date: string; dateObj: Date }[];
-} {
-  const now = new Date();
-  const startOfDay = (d: Date) => {
-    const c = new Date(d);
-    c.setHours(0, 0, 0, 0);
-    return c;
-  };
-  const endOfDay = (d: Date) => {
-    const c = new Date(d);
-    c.setHours(23, 59, 59, 999);
-    return c;
-  };
-
-  if (period === "week") {
-    const dayOfWeek = (now.getDay() + 6) % 7;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - dayOfWeek - offset * 7);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    const buckets = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return {
-        dateObj: startOfDay(d),
-        date:
-          d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
-          ` (${d.toLocaleDateString("en-US", { weekday: "short" })})`,
-      };
-    });
-    return { start: startOfDay(monday), end: endOfDay(sunday), buckets };
-  }
-
-  if (period === "month") {
-    const year = now.getFullYear();
-    const month = now.getMonth() - offset;
-    const start = new Date(year, month, 1);
-    const end = new Date(year, month + 1, 0);
-    const buckets = Array.from({ length: end.getDate() }, (_, i) => {
-      const d = new Date(year, month, i + 1);
-      return {
-        dateObj: startOfDay(d),
-        date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      };
-    });
-    return { start: startOfDay(start), end: endOfDay(end), buckets };
-  }
-
-  const year = now.getFullYear() - offset;
-  const start = new Date(year, 0, 1);
-  const end = new Date(year, 11, 31);
-  const buckets = Array.from({ length: 12 }, (_, m) => {
-    const d = new Date(year, m, 1);
-    return {
-      dateObj: startOfDay(d),
-      date: d.toLocaleDateString("en-US", { month: "short" }),
-    };
-  });
-  return { start: startOfDay(start), end: endOfDay(end), buckets };
-}
-
 interface StatCards {
   totalFocusTime: number;
   completedSessions: number;
@@ -144,63 +74,25 @@ interface TaskStat {
 interface StatsShellProps {
   initialCards: StatCards;
   taskStats: TaskStat[];
-  initialChartData: DayTaskData[];
-  initialTasks: { id: string; title: string }[];
+  initialChartData: ChartData;
 }
 
 export function StatsShell({
   initialCards,
   taskStats,
   initialChartData,
-  initialTasks,
 }: StatsShellProps) {
   const [period, setPeriod] = useState<Period>("week");
   const [offset, setOffset] = useState(0);
-  const [chartData, setChartData] = useState<DayTaskData[]>(initialChartData);
-  const [tasks, setTasks] =
-    useState<{ id: string; title: string }[]>(initialTasks);
+  const [chartData, setChartData] = useState<ChartData>(initialChartData);
+  const [tasks, setTasks] = useState(initialChartData.tasks);
   const [isPending, startTransition] = useTransition();
   const [hasFetched, setHasFetched] = useState(false);
 
   async function fetchChartData(newPeriod: Period, newOffset: number) {
-    const { start, end, buckets } = getDateRange(newPeriod, newOffset);
-    const sessions = await getSessionsInRange(start, end);
-
-    const taskMap = new Map<string, { id: string; title: string }>();
-    sessions.forEach((s) => {
-      if (s.task) taskMap.set(s.task.id, s.task);
-    });
-    const uniqueTasks = Array.from(taskMap.values());
-    setTasks(uniqueTasks);
-
-    const data: DayTaskData[] = buckets.map(({ date, dateObj }) => {
-      const row: DayTaskData = { date };
-      uniqueTasks.forEach((task) => {
-        let secs = 0;
-        if (newPeriod === "year") {
-          secs = sessions
-            .filter(
-              (s) =>
-                s.taskId === task.id &&
-                new Date(s.startedAt).getMonth() === dateObj.getMonth() &&
-                new Date(s.startedAt).getFullYear() === dateObj.getFullYear(),
-            )
-            .reduce((acc, s) => acc + s.duration, 0);
-        } else {
-          secs = sessions
-            .filter(
-              (s) =>
-                s.taskId === task.id &&
-                new Date(s.startedAt).toDateString() === dateObj.toDateString(),
-            )
-            .reduce((acc, s) => acc + s.duration, 0);
-        }
-        row[task.id] = Math.round(secs / 60);
-      });
-      return row;
-    });
-
-    setChartData(data);
+    const result = await getChartData(newPeriod, newOffset);
+    setTasks(result.tasks);
+    setChartData(result);
   }
 
   const handlePeriodChange = (p: Period) => {
@@ -217,7 +109,7 @@ export function StatsShell({
   };
 
   const label = getPeriodLabel(period, offset);
-  const totalMins = chartData.reduce(
+  const totalMins = chartData.data.reduce(
     (acc, row) =>
       acc + tasks.reduce((t, task) => t + ((row[task.id] as number) || 0), 0),
     0,
@@ -369,7 +261,7 @@ export function StatsShell({
                   </div>
                 ) : (
                   <TaskStackedChart
-                    data={chartData}
+                    data={chartData.data}
                     tasks={tasks}
                     emptyMessage={`No focus sessions in ${getPeriodLabel(period, offset).toLowerCase()}.`}
                   />

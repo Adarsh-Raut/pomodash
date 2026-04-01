@@ -3,10 +3,9 @@ export const revalidate = 60;
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
-import { getSessionStats, getSessionsInRange } from "@/actions/sessions";
+import { getSessionStats, getChartData } from "@/actions/sessions";
 import { getTaskStats } from "@/actions/tasks";
 import { StatsShell } from "@/components/stats/StatsShell";
-import type { DayTaskData } from "@/components/stats/TaskStackedChart";
 import StatsLoading from "./loading";
 
 export const metadata: Metadata = { title: "Stats" };
@@ -52,19 +51,10 @@ async function StatsContent() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const now = new Date();
-  const dayOfWeek = (now.getDay() + 6) % 7;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - dayOfWeek);
-  monday.setHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-
-  const [weeklySessions, taskStats, initialSessions] = await Promise.all([
+  const [weeklySessions, taskStats, initialChartData] = await Promise.all([
     getSessionStats("week"),
     getTaskStats(),
-    getSessionsInRange(monday, sunday),
+    getChartData("week", 0),
   ]);
 
   const completedSessions = weeklySessions.filter(
@@ -75,35 +65,6 @@ async function StatsContent() {
     0,
   );
   const { currentStreak, longestStreak } = calculateStreaks(weeklySessions);
-
-  const taskMap = new Map<string, { id: string; title: string }>();
-  initialSessions.forEach((s) => {
-    if (s.task) taskMap.set(s.task.id, s.task);
-  });
-  const initialTasks = Array.from(taskMap.values());
-
-  const initialChartData: DayTaskData[] = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dateObj = new Date(d);
-    dateObj.setHours(0, 0, 0, 0);
-    const date =
-      d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
-      ` (${d.toLocaleDateString("en-US", { weekday: "short" })})`;
-
-    const row: DayTaskData = { date };
-    initialTasks.forEach((task) => {
-      const secs = initialSessions
-        .filter(
-          (s) =>
-            s.taskId === task.id &&
-            new Date(s.startedAt).toDateString() === dateObj.toDateString(),
-        )
-        .reduce((acc, s) => acc + s.duration, 0);
-      row[task.id] = Math.round(secs / 60);
-    });
-    return row;
-  });
 
   return (
     <StatsShell
@@ -119,7 +80,6 @@ async function StatsContent() {
       }}
       taskStats={taskStats}
       initialChartData={initialChartData}
-      initialTasks={initialTasks}
     />
   );
 }

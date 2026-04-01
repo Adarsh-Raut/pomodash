@@ -14,7 +14,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
     <NextAuthSessionProvider
       // Refetch session every hour in case it was invalidated server-side
       refetchInterval={60 * 60}
-      refetchOnWindowFocus={true}
+      refetchOnWindowFocus={false}
     >
       {children}
     </NextAuthSessionProvider>

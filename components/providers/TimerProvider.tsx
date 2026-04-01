@@ -74,6 +74,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const startTimeRef = useRef<Date | null>(null);
   const activeTaskIdRef = useRef<string | null>(null);
   const settingsRef = useRef<UserSettings | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -141,9 +142,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
       if (s.soundEnabled) {
         try {
-          const audio = new Audio("/sounds/bell.mp3");
-          audio.volume = s.soundVolume / 100;
-          await audio.play();
+          if (!audioRef.current) {
+            audioRef.current = new Audio("/sounds/bell.mp3");
+          }
+          audioRef.current.volume = s.soundVolume / 100;
+          await audioRef.current.play();
         } catch {}
       }
 

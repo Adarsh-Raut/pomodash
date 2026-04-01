@@ -138,6 +138,8 @@ export function Navbar({ user }: NavbarProps) {
                     alt={user.name ?? "User"}
                     width={32}
                     height={32}
+                    quality={75}
+                    sizes="32px"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -224,6 +226,8 @@ export function Navbar({ user }: NavbarProps) {
                   alt={user.name ?? "User"}
                   width={32}
                   height={32}
+                  quality={75}
+                  sizes="32px"
                   className="w-full h-full object-cover"
                 />
               ) : (

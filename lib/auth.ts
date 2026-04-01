@@ -14,19 +14,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,
   },
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        await prisma.settings.upsert({
-          where: { userId: user.id },
-          update: {},
-          create: { userId: user.id },
-        });
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },
