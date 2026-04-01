@@ -195,12 +195,13 @@ export function LandingPage() {
         <div className="flex items-center gap-2">
           {/* <span className="text-2xl">🍅</span> */}
           <Image
-            src="/tomato.png"
-            alt="Pomodash"
-            width={28}
-            height={28}
-            className="rounded-sm"
-          />
+              src="/tomato.png"
+              alt="Pomodash"
+              width={28}
+              height={28}
+              quality={50}
+              className="rounded-sm"
+            />
           <span className="font-bold text-lg tracking-tight">Pomodash</span>
         </div>
         <button
@@ -384,6 +385,7 @@ export function LandingPage() {
               alt="Pomodash"
               width={28}
               height={28}
+              quality={50}
               className="rounded-sm"
             />
             <span>Pomodash</span>

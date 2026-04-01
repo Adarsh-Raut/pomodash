@@ -1,7 +1,7 @@
 // components/tasks/TaskList.tsx
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import { createTask, updateTask, deleteTask } from "@/actions/tasks";
 import type { Task } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -230,15 +230,15 @@ export function TaskList({
   const [tasks, setTasks] = useState(initialTasks);
   const [isPending, startTransition] = useTransition();
 
-  const handleAdd = (title: string, estimatedPomodoros: number) => {
+  const handleAdd = useCallback((title: string, estimatedPomodoros: number) => {
     startTransition(async () => {
       const newTask = await createTask({ title, estimatedPomodoros });
       setTasks((prev) => [...prev, newTask]);
       onTasksChange?.([...tasks, newTask]);
     });
-  };
+  }, [onTasksChange, tasks]);
 
-  const handleComplete = (taskId: string) => {
+  const handleComplete = useCallback((taskId: string) => {
     startTransition(async () => {
       await updateTask(taskId, { completed: true });
       const next = tasks.filter((t) => t.id !== taskId);
@@ -246,8 +246,9 @@ export function TaskList({
       onTasksChange?.(next);
       if (activeTaskId === taskId) onSelectTask(null);
     });
-  };
-  const handleDelete = (taskId: string) => {
+  }, [tasks, activeTaskId, onSelectTask, onTasksChange]);
+
+  const handleDelete = useCallback((taskId: string) => {
     startTransition(async () => {
       await deleteTask(taskId);
       const next = tasks.filter((t) => t.id !== taskId);
@@ -255,7 +256,7 @@ export function TaskList({
       onTasksChange?.(next);
       if (activeTaskId === taskId) onSelectTask(null);
     });
-  };
+  }, [tasks, activeTaskId, onSelectTask, onTasksChange]);
 
   return (
     <div className="card bg-base-100 shadow">

@@ -61,6 +61,17 @@ export async function getRecentSessions(limit = 10) {
     where: { userId: session.user.id },
     orderBy: { startedAt: "desc" },
     take: limit,
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      duration: true,
+      completed: true,
+      startedAt: true,
+      completedAt: true,
+      notes: true,
+      task: { select: { id: true, title: true } },
+    },
   });
 }
 

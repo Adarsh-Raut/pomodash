@@ -27,6 +27,18 @@ export async function getTasks() {
   return prisma.task.findMany({
     where: { userId: session.user.id, completed: false },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      description: true,
+      completed: true,
+      order: true,
+      estimatedPomodoros: true,
+      completedPomodoros: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }
 
@@ -38,6 +50,15 @@ export async function getCompletedTasks() {
     where: { userId: session.user.id, completed: true },
     orderBy: { updatedAt: "desc" },
     take: 10,
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      completed: true,
+      estimatedPomodoros: true,
+      completedPomodoros: true,
+      updatedAt: true,
+    },
   });
 }
 
@@ -122,24 +143,20 @@ export async function getTaskStats() {
           completed: true,
           startedAt: { gte: sevenDaysAgo },
         },
-        select: { duration: true },
       },
     },
     orderBy: { createdAt: "desc" },
   });
 
   return tasks
-    .map((task: (typeof tasks)[number]) => ({
+    .filter((task) => task.sessions.length > 0)
+    .map((task) => ({
       id: task.id,
       title: task.title,
       completed: task.completed,
       estimatedPomodoros: task.estimatedPomodoros,
       completedPomodoros: task.completedPomodoros,
-      totalFocusTime: task.sessions.reduce(
-        (acc: number, s: { duration: number }) => acc + s.duration,
-        0,
-      ),
+      totalFocusTime: task.sessions.reduce((acc, s) => acc + s.duration, 0),
       sessionCount: task.sessions.length,
-    }))
-    .filter((t: { totalFocusTime: number }) => t.totalFocusTime > 0);
+    }));
 }

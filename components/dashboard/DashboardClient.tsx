@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useTimerContext } from "@/components/providers/TimerProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { RecentSessions } from "@/components/stats/RecentSessions";
@@ -32,12 +32,17 @@ export function DashboardClient({
   const { activeTaskId, setActiveTaskId } = useTimerContext();
   const [tasks, setTasks] = useState(initialTasks);
 
+  const activeTask = useMemo(
+    () => tasks.find((t) => t.id === activeTaskId) ?? null,
+    [tasks, activeTaskId]
+  );
+
   useEffect(() => {
     const saved = localStorage.getItem(ACTIVE_TASK_KEY);
     if (saved && initialTasks.some((t) => t.id === saved)) {
       setActiveTaskId(saved);
     }
-  }, []);
+  }, [initialTasks, setActiveTaskId]);
 
   useEffect(() => {
     if (activeTaskId) {
@@ -46,8 +51,6 @@ export function DashboardClient({
       localStorage.removeItem(ACTIVE_TASK_KEY);
     }
   }, [activeTaskId]);
-
-  const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">

@@ -22,12 +22,15 @@ export async function getUserSettings() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
-  // upsert — create with defaults if doesn't exist, return if it does
-  const settings = await prisma.settings.upsert({
+  let settings = await prisma.settings.findUnique({
     where: { userId: session.user.id },
-    update: {},
-    create: { userId: session.user.id },
   });
+
+  if (!settings) {
+    settings = await prisma.settings.create({
+      data: { userId: session.user.id },
+    });
+  }
 
   return settings;
 }

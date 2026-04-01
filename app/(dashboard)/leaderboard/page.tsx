@@ -92,6 +92,8 @@ async function LeaderboardContent() {
                             alt={entry.name}
                             width={32}
                             height={32}
+                            quality={50}
+                            sizes="32px"
                             className="w-full h-full object-cover"
                           />
                         ) : (

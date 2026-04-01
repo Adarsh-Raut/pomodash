@@ -91,6 +91,7 @@ model PomodoroSession {
 
   @@index([userId, startedAt])
   @@index([userId, type])
+  @@index([userId, type, completed, startedAt])
   @@index([taskId])
 }
 
