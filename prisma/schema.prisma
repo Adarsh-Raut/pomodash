@@ -129,6 +129,7 @@ model Task {
   title              String
   description        String?  @db.Text
   completed          Boolean  @default(false)
+  deletedAt          DateTime?
   order              Int      @default(0)
   estimatedPomodoros Int      @default(1)
   completedPomodoros Int      @default(0)
@@ -141,4 +142,5 @@ model Task {
   @@index([userId, completed])
   @@index([userId, order])
   @@index([userId, completed, order, createdAt])
+  @@index([userId, deletedAt, completed, createdAt])
 }

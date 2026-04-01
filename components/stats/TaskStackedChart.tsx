@@ -1,5 +1,6 @@
 "use client";
 
+import { LayoutGrid } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -153,17 +154,7 @@ export function TaskStackedChart({
   if (!hasData) {
     return (
       <div className="h-64 flex flex-col items-center justify-center gap-2 text-base-content/50">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-10 h-10 opacity-40"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M3 9h18M9 21V9" />
-        </svg>
+        <LayoutGrid className="w-10 h-10 opacity-40" strokeWidth={1.5} />
         <span className="text-sm">{emptyMessage}</span>
       </div>
     );

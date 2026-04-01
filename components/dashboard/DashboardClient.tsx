@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActiveTask } from "@/components/providers/TimerProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { RecentSessions } from "@/components/stats/RecentSessions";
@@ -32,6 +32,7 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const { activeTaskId, setActiveTaskId } = useActiveTask();
   const [tasks, setTasks] = useState(initialTasks);
+  const hasRestoredActiveTaskRef = useRef(false);
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
 
   useEffect(() => {
@@ -39,10 +40,14 @@ export function DashboardClient({
   }, [initialTasks]);
 
   useEffect(() => {
+    if (hasRestoredActiveTaskRef.current) return;
+
     const saved = localStorage.getItem(ACTIVE_TASK_KEY);
     if (saved && tasks.some((t) => t.id === saved)) {
       setActiveTaskId(saved);
     }
+
+    hasRestoredActiveTaskRef.current = true;
   }, [tasks, setActiveTaskId]);
 
   useEffect(() => {

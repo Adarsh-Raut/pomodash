@@ -3,8 +3,16 @@
 import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { formatDuration } from "@/lib/utils";
-import { getChartData, type ChartData } from "@/actions/sessions";
-import { Timer, TrendingUp, Flame, CheckSquare } from "lucide-react";
+import { getStatsSnapshot, type ChartData } from "@/actions/sessions";
+import type { StatsPeriod } from "@/lib/stats";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Timer,
+  TrendingUp,
+  Flame,
+  CheckSquare,
+} from "lucide-react";
 
 const TaskStackedChart = dynamic(
   () =>
@@ -19,8 +27,6 @@ const TaskStackedChart = dynamic(
   },
 );
 
-type Period = "week" | "month" | "year";
-
 const COLORS = [
   "#60a5fa",
   "#34d399",
@@ -32,39 +38,14 @@ const COLORS = [
   "#e879f9",
 ];
 
-const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+const PERIOD_OPTIONS: { value: StatsPeriod; label: string }[] = [
   { value: "week", label: "Week" },
   { value: "month", label: "Month" },
   { value: "year", label: "Year" },
 ];
 
-function getPeriodLabel(period: Period, offset: number): string {
-  const now = new Date();
-  if (period === "week") {
-    const dayOfWeek = (now.getDay() + 6) % 7;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - dayOfWeek - offset * 7);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    if (offset === 0) return "This Week";
-    if (offset === 1) return "Last Week";
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
-    return `${fmt(monday)} – ${fmt(sunday)}`;
-  }
-  if (period === "month") {
-    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-    if (offset === 0) return "This Month";
-    if (offset === 1) return "Last Month";
-    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  }
-  const year = now.getFullYear() - offset;
-  if (offset === 0) return "This Year";
-  if (offset === 1) return "Last Year";
-  return String(year);
-}
-
 interface StatCards {
+  label: string;
   totalFocusTime: number;
   partialFocusTime: number;
   completedSessions: number;
@@ -78,6 +59,8 @@ interface TaskStat {
   id: string;
   title: string;
   completed: boolean;
+  isArchived: boolean;
+  isPartialOnly: boolean;
   estimatedPomodoros: number;
   completedPomodoros: number;
   totalFocusTime: number;
@@ -85,43 +68,48 @@ interface TaskStat {
 }
 
 interface StatsShellProps {
-  initialCards: StatCards;
-  taskStats: TaskStat[];
-  initialChartData: ChartData;
+  initialSnapshot: {
+    period: StatsPeriod;
+    offset: number;
+    label: string;
+    cards: StatCards;
+    taskStats: TaskStat[];
+    chartData: ChartData;
+  };
 }
 
-export function StatsShell({
-  initialCards,
-  taskStats,
-  initialChartData,
-}: StatsShellProps) {
-  const [period, setPeriod] = useState<Period>("week");
-  const [offset, setOffset] = useState(0);
-  const [chartData, setChartData] = useState<ChartData>(initialChartData);
-  const [tasks, setTasks] = useState(initialChartData.tasks);
+export function StatsShell({ initialSnapshot }: StatsShellProps) {
+  const [period, setPeriod] = useState<StatsPeriod>(initialSnapshot.period);
+  const [offset, setOffset] = useState(initialSnapshot.offset);
+  const [label, setLabel] = useState(initialSnapshot.label);
+  const [cards, setCards] = useState(initialSnapshot.cards);
+  const [taskStats, setTaskStats] = useState(initialSnapshot.taskStats);
+  const [chartData, setChartData] = useState<ChartData>(initialSnapshot.chartData);
+  const [tasks, setTasks] = useState(initialSnapshot.chartData.tasks);
   const [isPending, startTransition] = useTransition();
   const [hasFetched, setHasFetched] = useState(false);
 
-  async function fetchChartData(newPeriod: Period, newOffset: number) {
-    const result = await getChartData(newPeriod, newOffset);
-    setTasks(result.tasks);
-    setChartData(result);
+  async function fetchSnapshot(newPeriod: StatsPeriod, newOffset: number) {
+    const result = await getStatsSnapshot(newPeriod, newOffset);
+    setLabel(result.label);
+    setCards(result.cards);
+    setTaskStats(result.taskStats);
+    setTasks(result.chartData.tasks);
+    setChartData(result.chartData);
   }
 
-  const handlePeriodChange = (p: Period) => {
+  const handlePeriodChange = (p: StatsPeriod) => {
     setPeriod(p);
     setOffset(0);
     setHasFetched(true);
-    startTransition(() => fetchChartData(p, 0));
+    startTransition(() => fetchSnapshot(p, 0));
   };
 
   const handleOffsetChange = (newOffset: number) => {
     setOffset(newOffset);
     setHasFetched(true);
-    startTransition(() => fetchChartData(period, newOffset));
+    startTransition(() => fetchSnapshot(period, newOffset));
   };
-
-  const label = getPeriodLabel(period, offset);
   const totalMins = chartData.data.reduce(
     (acc, row) =>
       acc + tasks.reduce((t, task) => t + ((row[task.id] as number) || 0), 0),
@@ -141,15 +129,15 @@ export function StatsShell({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: "This Week",
-            value: formatDuration(initialCards.totalFocusTime),
-            sub: `${initialCards.completedSessions} sessions`,
+            label: cards.label,
+            value: formatDuration(cards.totalFocusTime),
+            sub: `${cards.completedSessions} sessions`,
             color: "#60a5fa",
             icon: <Timer className="w-5 h-5" style={{ color: "#60a5fa" }} />,
           },
           {
             label: "Partial Focus",
-            value: formatDuration(initialCards.partialFocusTime),
+            value: formatDuration(cards.partialFocusTime),
             sub: "incomplete sessions",
             color: "#34d399",
             icon: (
@@ -158,15 +146,15 @@ export function StatsShell({
           },
           {
             label: "Streak",
-            value: `${initialCards.currentStreak}d`,
-            sub: `Best: ${initialCards.longestStreak}d`,
+            value: `${cards.currentStreak}d`,
+            sub: `Best: ${cards.longestStreak}d`,
             color: "#fbbf24",
             icon: <Flame className="w-5 h-5" style={{ color: "#fbbf24" }} />,
           },
           {
             label: "Tasks",
-            value: initialCards.tasksTracked.toString(),
-            sub: `${initialCards.tasksCompleted} completed`,
+            value: cards.tasksTracked.toString(),
+            sub: `${cards.tasksCompleted} completed`,
             color: "#a78bfa",
             icon: (
               <CheckSquare className="w-5 h-5" style={{ color: "#a78bfa" }} />
@@ -224,16 +212,7 @@ export function StatsShell({
                   className="px-3 py-1.5 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors border-r border-base-300"
                   aria-label="Previous period"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
+                  <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
                 </button>
                 <span className="px-4 py-1.5 text-sm font-medium min-w-[140px] text-center">
                   {label}
@@ -244,16 +223,7 @@ export function StatsShell({
                   className="px-3 py-1.5 text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors border-l border-base-300 disabled:opacity-30 disabled:cursor-not-allowed"
                   aria-label="Next period"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
+                  <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
                 </button>
               </div>
             </div>
@@ -268,7 +238,7 @@ export function StatsShell({
               <TaskStackedChart
                 data={chartData.data}
                 tasks={tasks}
-                emptyMessage={`No focus sessions in ${getPeriodLabel(period, offset).toLowerCase()}.`}
+                emptyMessage={`No focus sessions in ${label.toLowerCase()}.`}
               />
             )}
           </div>
@@ -293,7 +263,7 @@ export function StatsShell({
                 </tr>
               </thead>
               <tbody>
-                {taskStats
+                {[...taskStats]
                   .sort((a, b) => b.totalFocusTime - a.totalFocusTime)
                   .map((task, i) => {
                     const pct = Math.round(
@@ -310,6 +280,7 @@ export function StatsShell({
                             <div>
                               <p className="font-medium text-sm truncate max-w-[180px]">
                                 {task.title}
+                                {task.isPartialOnly ? " (partial)" : ""}
                               </p>
                               <div className="w-20 bg-base-300 rounded-full h-1 mt-1">
                                 <div
@@ -336,7 +307,11 @@ export function StatsShell({
                           {formatDuration(task.totalFocusTime)}
                         </td>
                         <td className="text-right">
-                          {task.completed ? (
+                          {task.isArchived ? (
+                            <span className="badge badge-ghost badge-sm">
+                              Archived
+                            </span>
+                          ) : task.completed ? (
                             <span className="badge badge-success badge-sm">
                               Done
                             </span>

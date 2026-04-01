@@ -8,6 +8,8 @@ import { z } from "zod";
 import type { CreateSessionInput } from "@/types";
 import { unstable_cache } from "next/cache";
 import { getDateRange } from "@/lib/utils";
+import { getStatsDateRange, type StatsPeriod } from "@/lib/stats";
+import { getTaskStats } from "./tasks";
 
 // Input validation schema
 const createSessionSchema = z.object({
@@ -28,15 +30,30 @@ export async function createSession(input: CreateSessionInput) {
   const validated = createSessionSchema.parse(input);
 
   const pomodoroSession = await prisma.$transaction(async (tx) => {
-    if (validated.completed && validated.type === "FOCUS" && validated.taskId) {
-      const updatedTask = await tx.task.updateMany({
-        where: { id: validated.taskId, userId: session.user.id },
-        data: { completedPomodoros: { increment: 1 } },
+    let safeTaskId: string | undefined;
+
+    if (validated.taskId && validated.type === "FOCUS") {
+      const task = await tx.task.findFirst({
+        where: {
+          id: validated.taskId,
+          userId: session.user.id,
+          deletedAt: null,
+        },
+        select: { id: true },
       });
 
-      if (updatedTask.count === 0) {
+      if (!task) {
         throw new Error("Task not found");
       }
+
+      safeTaskId = task.id;
+    }
+
+    if (validated.completed && validated.type === "FOCUS" && safeTaskId) {
+      await tx.task.update({
+        where: { id: safeTaskId, userId: session.user.id },
+        data: { completedPomodoros: { increment: 1 } },
+      });
     }
 
     return tx.pomodoroSession.create({
@@ -47,7 +64,7 @@ export async function createSession(input: CreateSessionInput) {
         completed: validated.completed,
         completedAt: validated.completed ? new Date() : null,
         notes: validated.notes,
-        taskId: validated.taskId,
+        taskId: safeTaskId,
       },
     });
   });
@@ -203,10 +220,10 @@ function getChartTaskTitle(title: string, completed: boolean) {
 }
 
 function getChartDateRange(
-  period: "week" | "month" | "year",
+  period: StatsPeriod,
   offset: number
 ): { start: Date; end: Date; buckets: ChartBucket[] } {
-  const now = new Date();
+  const { start, end } = getStatsDateRange(period, offset);
   const startOfDay = (d: Date) => {
     const c = new Date(d);
     c.setHours(0, 0, 0, 0);
@@ -219,14 +236,9 @@ function getChartDateRange(
   };
 
   if (period === "week") {
-    const dayOfWeek = (now.getDay() + 6) % 7;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - dayOfWeek - offset * 7);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
     const buckets = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
       return {
         dateObj: startOfDay(d),
         date:
@@ -234,16 +246,12 @@ function getChartDateRange(
           ` (${d.toLocaleDateString("en-US", { weekday: "short" })})`,
       };
     });
-    return { start: startOfDay(monday), end: endOfDay(sunday), buckets };
+    return { start, end, buckets };
   }
 
   if (period === "month") {
-    const year = now.getFullYear();
-    const month = now.getMonth() - offset;
-    const start = new Date(year, month, 1);
-    const end = new Date(year, month + 1, 0);
     const buckets = Array.from({ length: end.getDate() }, (_, i) => {
-      const d = new Date(year, month, i + 1);
+      const d = new Date(start.getFullYear(), start.getMonth(), i + 1);
       return {
         dateObj: startOfDay(d),
         date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -252,11 +260,8 @@ function getChartDateRange(
     return { start: startOfDay(start), end: endOfDay(end), buckets };
   }
 
-  const year = now.getFullYear() - offset;
-  const start = new Date(year, 0, 1);
-  const end = new Date(year, 11, 31);
   const buckets = Array.from({ length: 12 }, (_, m) => {
-    const d = new Date(year, m, 1);
+    const d = new Date(start.getFullYear(), m, 1);
     return {
       dateObj: startOfDay(d),
       date: d.toLocaleDateString("en-US", { month: "short" }),
@@ -266,7 +271,7 @@ function getChartDateRange(
 }
 
 export async function getChartData(
-  period: "week" | "month" | "year",
+  period: StatsPeriod,
   offset: number
 ): Promise<ChartData> {
   const session = await auth();
@@ -358,4 +363,107 @@ export async function getChartData(
   });
 
   return { buckets, tasks, data };
+}
+
+function calculateStreaks(sessions: { startedAt: Date; completed: boolean }[]) {
+  const completedDays = new Set(
+    sessions
+      .filter((session) => session.completed)
+      .map((session) => new Date(session.startedAt).toDateString()),
+  );
+
+  let currentStreak = 0;
+  const checking = new Date();
+  for (let i = 0; i < 365; i++) {
+    if (completedDays.has(checking.toDateString())) {
+      currentStreak++;
+      checking.setDate(checking.getDate() - 1);
+    } else if (i === 0) {
+      checking.setDate(checking.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  const sortedDays = Array.from(completedDays)
+    .map((day) => new Date(day))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  let longestStreak = 0;
+  let temp = 0;
+  for (let i = 0; i < sortedDays.length; i++) {
+    if (i === 0) temp = 1;
+    else {
+      const diff =
+        (sortedDays[i].getTime() - sortedDays[i - 1].getTime()) / 86400000;
+      temp = diff === 1 ? temp + 1 : 1;
+    }
+    longestStreak = Math.max(longestStreak, temp);
+  }
+
+  return { currentStreak, longestStreak };
+}
+
+export async function getStatsSnapshot(period: StatsPeriod, offset: number) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const { start, end, label } = getStatsDateRange(period, offset);
+
+  const [rangeSessions, allFocusSessions, taskStats, chartData] = await Promise.all([
+    prisma.pomodoroSession.findMany({
+      where: {
+        userId: session.user.id,
+        type: "FOCUS",
+        startedAt: { gte: start, lte: end },
+      },
+      orderBy: { startedAt: "asc" },
+      select: {
+        completed: true,
+        duration: true,
+        startedAt: true,
+      },
+    }),
+    prisma.pomodoroSession.findMany({
+      where: {
+        userId: session.user.id,
+        type: "FOCUS",
+      },
+      orderBy: { startedAt: "asc" },
+      select: {
+        completed: true,
+        startedAt: true,
+      },
+    }),
+    getTaskStats(period, offset),
+    getChartData(period, offset),
+  ]);
+
+  const completedSessions = rangeSessions.filter((item) => item.completed);
+  const totalFocusTime = completedSessions.reduce(
+    (sum, item) => sum + item.duration,
+    0,
+  );
+  const partialFocusTime = rangeSessions
+    .filter((item) => !item.completed)
+    .reduce((sum, item) => sum + item.duration, 0);
+  const { currentStreak, longestStreak } = calculateStreaks(allFocusSessions);
+
+  return {
+    period,
+    offset,
+    label,
+    cards: {
+      label,
+      totalFocusTime,
+      partialFocusTime,
+      completedSessions: completedSessions.length,
+      currentStreak,
+      longestStreak,
+      tasksTracked: taskStats.length,
+      tasksCompleted: taskStats.filter((task) => task.completed).length,
+    },
+    taskStats,
+    chartData,
+  };
 }

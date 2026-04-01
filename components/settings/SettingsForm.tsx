@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { updateSettings } from "@/actions/settings";
 import type { UserSettings } from "@/types";
 import { cn } from "@/lib/utils";
@@ -222,16 +223,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4 text-base-content/70 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                </svg>
+                <VolumeX className="w-4 h-4 text-base-content/70 shrink-0" />
                 <input
                   type="range"
                   min={0}
@@ -246,18 +238,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   }
                   className="range range-primary range-sm flex-1"
                 />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4 text-base-content/70 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                </svg>
+                <Volume2 className="w-4 h-4 text-base-content/70 shrink-0" />
               </div>
             </div>
           )}

@@ -4,6 +4,7 @@
 import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getStatsDateRange, type StatsPeriod } from "@/lib/stats";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -26,7 +27,7 @@ export async function getTasks() {
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   return prisma.task.findMany({
-    where: { userId: session.user.id, completed: false },
+    where: { userId: session.user.id, completed: false, deletedAt: null },
     orderBy: [{ createdAt: "desc" }, { order: "desc" }],
     select: {
       id: true,
@@ -34,6 +35,7 @@ export async function getTasks() {
       title: true,
       description: true,
       completed: true,
+      deletedAt: true,
       order: true,
       estimatedPomodoros: true,
       completedPomodoros: true,
@@ -48,7 +50,7 @@ export async function getCompletedTasks() {
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   return prisma.task.findMany({
-    where: { userId: session.user.id, completed: true },
+    where: { userId: session.user.id, completed: true, deletedAt: null },
     orderBy: { updatedAt: "desc" },
     take: 10,
     select: {
@@ -56,6 +58,7 @@ export async function getCompletedTasks() {
       userId: true,
       title: true,
       completed: true,
+      deletedAt: true,
       estimatedPomodoros: true,
       completedPomodoros: true,
       updatedAt: true,
@@ -113,11 +116,13 @@ export async function deleteTask(id: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
-  await prisma.task.delete({
+  await prisma.task.update({
     where: { id, userId: session.user.id },
+    data: { deletedAt: new Date() },
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/stats");
 }
 
 export async function incrementTaskPomodoro(taskId: string) {
@@ -132,20 +137,22 @@ export async function incrementTaskPomodoro(taskId: string) {
   revalidatePath("/dashboard");
 }
 
-export async function getTaskStats() {
+export async function getTaskStats(
+  period: StatsPeriod = "week",
+  offset = 0,
+) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const { start, end } = getStatsDateRange(period, offset);
 
   const sessionStats = await prisma.pomodoroSession.groupBy({
-    by: ["taskId"],
+    by: ["taskId", "completed"],
     where: {
       userId: session.user.id,
       taskId: { not: null },
       type: "FOCUS",
-      startedAt: { gte: sevenDaysAgo },
+      startedAt: { gte: start, lte: end },
     },
     _sum: { duration: true },
     _count: { id: true },
@@ -166,28 +173,46 @@ export async function getTaskStats() {
       id: true,
       title: true,
       completed: true,
+      deletedAt: true,
       estimatedPomodoros: true,
       completedPomodoros: true,
     },
   });
 
-  const statsByTaskId = new Map(
-    sessionStats.map((stat) => [
-      stat.taskId,
-      {
-        totalFocusTime: stat._sum.duration ?? 0,
-        sessionCount: stat._count.id,
-      },
-    ]),
-  );
+  const statsByTaskId = new Map<
+    string,
+    { totalFocusTime: number; sessionCount: number; hasCompleted: boolean; hasPartial: boolean }
+  >();
+
+  sessionStats.forEach((stat) => {
+    if (!stat.taskId) return;
+
+    const current = statsByTaskId.get(stat.taskId) ?? {
+      totalFocusTime: 0,
+      sessionCount: 0,
+      hasCompleted: false,
+      hasPartial: false,
+    };
+
+    current.totalFocusTime += stat._sum.duration ?? 0;
+    current.sessionCount += stat._count.id;
+    current.hasCompleted = current.hasCompleted || stat.completed;
+    current.hasPartial = current.hasPartial || !stat.completed;
+
+    statsByTaskId.set(stat.taskId, current);
+  });
 
   return tasks.map((task) => ({
-      id: task.id,
-      title: task.title,
-      completed: task.completed,
-      estimatedPomodoros: task.estimatedPomodoros,
-      completedPomodoros: task.completedPomodoros,
-      totalFocusTime: statsByTaskId.get(task.id)?.totalFocusTime ?? 0,
-      sessionCount: statsByTaskId.get(task.id)?.sessionCount ?? 0,
+    id: task.id,
+    title: task.title,
+    completed: task.completed,
+    isArchived: task.deletedAt !== null,
+    estimatedPomodoros: task.estimatedPomodoros,
+    completedPomodoros: task.completedPomodoros,
+    totalFocusTime: statsByTaskId.get(task.id)?.totalFocusTime ?? 0,
+    sessionCount: statsByTaskId.get(task.id)?.sessionCount ?? 0,
+    isPartialOnly:
+      (statsByTaskId.get(task.id)?.hasCompleted ?? false) === false &&
+      (statsByTaskId.get(task.id)?.hasPartial ?? false),
   }));
 }

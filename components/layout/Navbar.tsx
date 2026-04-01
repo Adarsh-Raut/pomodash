@@ -5,8 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { Settings, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, Moon, Settings, Sun, LogOut, X } from "lucide-react";
 
 interface NavbarProps {
   user: {
@@ -25,21 +25,26 @@ const navLinks = [
 
 export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") {
-      return "dark";
-    }
-
-    const saved = localStorage.getItem("theme");
-    return saved === "light" ? "light" : "dark";
-  });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark" | null>(null);
+
+  useEffect(() => {
+    const current =
+      document.documentElement.getAttribute("data-theme") === "light"
+        ? "light"
+        : "dark";
+    setTheme(current);
+  }, []);
 
   const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
+    const current =
+      document.documentElement.getAttribute("data-theme") === "light"
+        ? "light"
+        : "dark";
+    const next = current === "light" ? "dark" : "light";
     localStorage.setItem("theme", next);
     document.documentElement.setAttribute("data-theme", next);
+    setTheme(next);
   };
 
   return (
@@ -92,16 +97,11 @@ export function Navbar({ user }: NavbarProps) {
               className="btn btn-ghost btn-sm btn-circle text-base-content/70 hover:text-base-content"
               aria-label="Toggle theme"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-              </svg>
+              {theme === "light" ? (
+                <Moon className="w-4 h-4" />
+              ) : (
+                <Sun className="w-4 h-4" />
+              )}
             </button>
 
             {/* Avatar dropdown — desktop only */}
@@ -165,27 +165,9 @@ export function Navbar({ user }: NavbarProps) {
               aria-label="Toggle menu"
             >
               {menuOpen ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                <X className="w-5 h-5" />
               ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                <Menu className="w-5 h-5" />
               )}
             </button>
           </div>

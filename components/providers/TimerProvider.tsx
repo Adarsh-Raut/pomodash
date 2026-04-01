@@ -123,6 +123,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const settingsRef = useRef<UserSettings | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const completingRef = useRef(false);
+  const partialPersistedRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => {
@@ -175,6 +176,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const persistPartialSession = useCallback(() => {
+    if (partialPersistedRef.current) return;
+
     const mode = state.mode;
     const completed = false;
     const duration = getElapsedSeconds();
@@ -191,11 +194,13 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     });
 
     if (navigator.sendBeacon) {
+      partialPersistedRef.current = true;
       navigator.sendBeacon("/api/sessions/partial", payload);
     }
   }, [getElapsedSeconds, state.mode, state.status]);
 
   const resetProgressRefs = useCallback(() => {
+    partialPersistedRef.current = false;
     elapsedRef.current = 0;
     runStartTimeRef.current = null;
     targetEndTimeRef.current = null;

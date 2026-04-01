@@ -34,9 +34,9 @@ export async function POST(request: Request) {
   const data = parsed.data;
   let taskId: string | undefined;
 
-  if (data.taskId) {
+  if (data.taskId && data.type === "FOCUS") {
     const task = await prisma.task.findFirst({
-      where: { id: data.taskId, userId: session.user.id },
+      where: { id: data.taskId, userId: session.user.id, deletedAt: null },
       select: { id: true },
     });
 
