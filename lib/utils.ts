@@ -38,7 +38,7 @@ export function getDateRange(period: "day" | "week" | "month"): {
       start.setHours(0, 0, 0, 0);
       break;
     case "week":
-      start.setDate(now.getDate() - now.getDay()); // Sunday
+      start.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday
       start.setHours(0, 0, 0, 0);
       break;
     case "month":

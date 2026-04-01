@@ -33,11 +33,24 @@ const COLORS = [
   "#e879f9",
 ];
 
-function CustomTooltip({ active, payload, label }: any) {
+interface TooltipEntry {
+  value?: number;
+  dataKey: string;
+  fill: string;
+  name: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
 
   const total = payload.reduce(
-    (acc: number, p: any) => acc + (p.value || 0),
+    (acc: number, p) => acc + (p.value || 0),
     0,
   );
   if (total === 0) return null; // don't show tooltip for empty bars
@@ -56,9 +69,9 @@ function CustomTooltip({ active, payload, label }: any) {
         {label}
       </p>
       {payload
-        .filter((p: any) => p.value > 0)
+        .filter((p) => p.value && p.value > 0)
         .reverse()
-        .map((p: any) => (
+        .map((p) => (
           <div
             key={p.dataKey}
             style={{
@@ -98,7 +111,7 @@ function CustomTooltip({ active, payload, label }: any) {
                 fontFamily: "monospace",
               }}
             >
-              {formatDuration(p.value * 60)}
+              {formatDuration((p.value ?? 0) * 60)}
             </span>
           </div>
         ))}

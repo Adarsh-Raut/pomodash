@@ -1,7 +1,6 @@
 // src/components/timer/TimerControls.tsx
 "use client";
 
-import { motion } from "framer-motion";
 import type { TimerStatus } from "@/types";
 
 interface TimerControlsProps {
@@ -25,11 +24,9 @@ export function TimerControls({
     <div className="flex items-center justify-center gap-4">
       {/* Reset — always visible when not idle */}
       {status !== "idle" && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <button
           onClick={onReset}
-          className="btn btn-ghost btn-circle"
+          className="btn btn-ghost btn-circle transition-transform duration-150 ease-out"
           aria-label="Reset timer"
         >
           {/* Reset icon */}
@@ -44,13 +41,11 @@ export function TimerControls({
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
-        </motion.button>
+        </button>
       )}
 
       {/* Primary action button */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+      <button
         onClick={
           status === "idle" || status === "completed"
             ? onStart
@@ -58,22 +53,20 @@ export function TimerControls({
               ? onPause
               : onResume
         }
-        className="btn btn-primary btn-wide text-lg font-bold h-14"
+        className="btn btn-primary btn-wide h-14 text-lg font-bold transition-transform duration-150 ease-out hover:scale-105 active:scale-95"
         aria-label={status === "running" ? "Pause timer" : "Start timer"}
       >
         {status === "idle" && "Start"}
         {status === "running" && "Pause"}
         {status === "paused" && "Resume"}
         {status === "completed" && "Start Next"}
-      </motion.button>
+      </button>
 
       {/* Skip — visible when running or paused */}
       {(status === "running" || status === "paused") && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <button
           onClick={onSkip}
-          className="btn btn-ghost btn-circle"
+          className="btn btn-ghost btn-circle transition-transform duration-150 ease-out"
           aria-label="Skip to next session"
         >
           <svg
@@ -87,7 +80,7 @@ export function TimerControls({
             <polygon points="5 4 15 12 5 20 5 4" />
             <line x1="19" x2="19" y1="5" y2="19" />
           </svg>
-        </motion.button>
+        </button>
       )}
     </div>
   );

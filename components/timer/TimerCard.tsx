@@ -5,8 +5,7 @@ import { useTimerContext } from "@/components/providers/TimerProvider";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
 import { SessionTypeSelector } from "./SessionTypeSelector";
-import type { UserSettings, TimerMode } from "@/types";
-import { motion, AnimatePresence } from "framer-motion";
+import type { UserSettings } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface TimerCardProps {
@@ -41,10 +40,10 @@ export function TimerCard({
   // Sync settings and activeTaskId into context
   useEffect(() => {
     setSettings(settings);
-  }, [settings]);
+  }, [settings, setSettings]);
   useEffect(() => {
     setActiveTaskId(activeTaskId);
-  }, [activeTaskId]);
+  }, [activeTaskId, setActiveTaskId]);
 
   useEffect(() => {
     if (state.status === "running" || state.status === "paused") {
@@ -78,16 +77,14 @@ export function TimerCard({
   const canStart = !!activeTaskId;
 
   return (
-    <motion.div layout className="card bg-base-100 shadow-xl overflow-hidden">
-      <motion.div
+    <div className="card bg-base-100 shadow-xl overflow-hidden">
+      <div
         className={cn("h-1.5 w-full", config.color)}
-        animate={{ scaleX: progress / 100 }}
-        style={{ transformOrigin: "left" }}
-        transition={
-          state.status === "running"
-            ? { duration: 0.5, ease: "linear" }
-            : { duration: 0 }
-        }
+        style={{
+          transformOrigin: "left",
+          transform: `scaleX(${progress / 100})`,
+          transition: state.status === "running" ? "transform 500ms linear" : "none",
+        }}
       />
 
       <div className="card-body gap-6 py-8">
@@ -97,33 +94,18 @@ export function TimerCard({
           disabled={state.status === "running"}
         />
 
-        <AnimatePresence mode="wait">
-          {activeTaskTitle ? (
-            <motion.div
-              key="task"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2"
-            >
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-sm font-medium text-base-content/70 truncate max-w-xs">
-                {activeTaskTitle}
-              </span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="no-task"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center justify-center"
-            >
-              <span className="text-sm text-base-content/70">
-                No task selected
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {activeTaskTitle ? (
+          <div className="flex items-center justify-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <span className="max-w-xs truncate text-sm font-medium text-base-content/70">
+              {activeTaskTitle}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center">
+            <span className="text-sm text-base-content/70">No task selected</span>
+          </div>
+        )}
 
         <TimerDisplay
           timeRemaining={state.timeRemaining}
@@ -146,59 +128,37 @@ export function TimerCard({
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
-          {!canStart && state.status === "idle" ? (
-            <motion.div
-              key="blocked"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-3"
+        {!canStart && state.status === "idle" ? (
+          <div className="flex flex-col items-center gap-3">
+            <button
+              disabled
+              className="btn btn-wide btn-disabled h-14 text-lg text-base-content/50"
             >
-              <button
-                disabled
-                className="btn btn-wide btn-disabled text-base-content/50 text-lg h-14"
-              >
-                Select a task first
-              </button>
-              <p className="text-xs text-base-content/70">
-                Pick a task below to begin focusing
-              </p>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="controls"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <TimerControls
-                status={state.status}
-                onStart={start}
-                onPause={pause}
-                onResume={resume}
-                onReset={reset}
-                onSkip={skip}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              Select a task first
+            </button>
+            <p className="text-xs text-base-content/70">
+              Pick a task below to begin focusing
+            </p>
+          </div>
+        ) : (
+          <TimerControls
+            status={state.status}
+            onStart={start}
+            onPause={pause}
+            onResume={resume}
+            onReset={reset}
+            onSkip={skip}
+          />
+        )}
 
-        <AnimatePresence>
-          {state.status === "completed" && (
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={cn("text-center font-semibold", config.textColor)}
-            >
-              {state.mode === "focus"
-                ? "Great work! Take a break. 🎉"
-                : "Break over. Ready to focus? 💪"}
-            </motion.p>
-          )}
-        </AnimatePresence>
+        {state.status === "completed" && (
+          <p className={cn("text-center font-semibold", config.textColor)}>
+            {state.mode === "focus"
+              ? "Great work! Take a break. 🎉"
+              : "Break over. Ready to focus? 💪"}
+          </p>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }

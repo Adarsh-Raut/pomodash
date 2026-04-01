@@ -2,16 +2,16 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
+import { Trash2 } from "lucide-react";
 import { createTask, updateTask, deleteTask } from "@/actions/tasks";
 import type { Task } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface TaskListProps {
-  initialTasks: Task[];
+  tasks: Task[];
   activeTaskId: string | null;
   onSelectTask: (taskId: string | null) => void;
-  onTasksChange?: (tasks: Task[]) => void;
+  onTasksChange: (updater: (tasks: Task[]) => Task[]) => void;
 }
 function PomodoroCircles({
   completed,
@@ -67,11 +67,9 @@ function AddTaskForm({
   }
 
   return (
-    <motion.form
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
+    <form
       onSubmit={handleSubmit}
-      className="rounded-xl border-2 border-primary/50 bg-base-100 p-4 space-y-3"
+      className="space-y-3 rounded-xl border-2 border-primary/50 bg-base-100 p-4"
     >
       <input
         autoFocus
@@ -112,7 +110,7 @@ function AddTaskForm({
           Cancel
         </button>
       </div>
-    </motion.form>
+    </form>
   );
 }
 
@@ -129,15 +127,8 @@ function TaskItem({
   onComplete: () => void;
   onDelete: () => void;
 }) {
-  const [showActions, setShowActions] = useState(false);
-  const isDone = task.completedPomodoros >= task.estimatedPomodoros;
-
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+    <div
       className={cn(
         "group flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer",
         isActive
@@ -145,8 +136,6 @@ function TaskItem({
           : "border-base-300 bg-base-100 hover:border-primary/40",
       )}
       onClick={onSelect}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
     >
       {/* Completion button */}
       <button
@@ -158,11 +147,11 @@ function TaskItem({
         className={cn(
           "w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all hover:scale-110",
           isActive
-            ? "border-primary hover:bg-primary hover:border-primary"
+            ? "border-primary bg-primary/10 hover:border-primary"
             : "border-base-300 hover:border-primary",
         )}
       >
-        {isDone && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+        {isActive && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
       </button>
 
       {/* Info */}
@@ -186,139 +175,107 @@ function TaskItem({
         </div>
       </div>
 
-      {/* Active badge */}
-      {isActive && (
-        <span className="badge badge-primary badge-sm shrink-0">Selected</span>
+      {/* Always visible on mobile, hover-revealed on larger screens */}
+      {!isActive && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="shrink-0 cursor-pointer rounded-md p-1 text-error transition-all duration-200 sm:text-base-content/20 sm:opacity-0 sm:group-hover:opacity-100 sm:hover:text-error sm:hover:scale-110"
+          aria-label={`Delete ${task.title}`}
+        >
+          <Trash2 className="w-4 h-4" strokeWidth={2} />
+        </button>
       )}
-
-      {/* Delete on hover */}
-      <AnimatePresence>
-        {showActions && !isActive && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="text-base-content/20 hover:text-error transition-colors shrink-0"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-            </svg>
-          </motion.button>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
 export function TaskList({
-  initialTasks,
+  tasks,
   activeTaskId,
   onSelectTask,
   onTasksChange,
 }: TaskListProps) {
-  const [tasks, setTasks] = useState(initialTasks);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
-  const handleAdd = useCallback((title: string, estimatedPomodoros: number) => {
-    startTransition(async () => {
-      const newTask = await createTask({ title, estimatedPomodoros });
-      setTasks((prev) => [...prev, newTask]);
-      onTasksChange?.([...tasks, newTask]);
-    });
-  }, [onTasksChange, tasks]);
+  const handleAdd = useCallback(
+    (title: string, estimatedPomodoros: number) => {
+      startTransition(async () => {
+        const newTask = await createTask({ title, estimatedPomodoros });
+        onTasksChange((currentTasks) => [newTask, ...currentTasks]);
+        onSelectTask(newTask.id);
+      });
+    },
+    [onSelectTask, onTasksChange],
+  );
 
-  const handleComplete = useCallback((taskId: string) => {
-    startTransition(async () => {
-      await updateTask(taskId, { completed: true });
-      const next = tasks.filter((t) => t.id !== taskId);
-      setTasks(next);
-      onTasksChange?.(next);
-      if (activeTaskId === taskId) onSelectTask(null);
-    });
-  }, [tasks, activeTaskId, onSelectTask, onTasksChange]);
+  const handleComplete = useCallback(
+    (taskId: string) => {
+      startTransition(async () => {
+        await updateTask(taskId, { completed: true });
+        onTasksChange((currentTasks) =>
+          currentTasks.filter((t) => t.id !== taskId),
+        );
+        if (activeTaskId === taskId) onSelectTask(null);
+      });
+    },
+    [activeTaskId, onSelectTask, onTasksChange],
+  );
 
-  const handleDelete = useCallback((taskId: string) => {
-    startTransition(async () => {
-      await deleteTask(taskId);
-      const next = tasks.filter((t) => t.id !== taskId);
-      setTasks(next);
-      onTasksChange?.(next);
-      if (activeTaskId === taskId) onSelectTask(null);
-    });
-  }, [tasks, activeTaskId, onSelectTask, onTasksChange]);
+  const handleDelete = useCallback(
+    (taskId: string) => {
+      startTransition(async () => {
+        await deleteTask(taskId);
+        onTasksChange((currentTasks) =>
+          currentTasks.filter((t) => t.id !== taskId),
+        );
+        if (activeTaskId === taskId) onSelectTask(null);
+      });
+    },
+    [activeTaskId, onSelectTask, onTasksChange],
+  );
 
   return (
     <div className="card bg-base-100 shadow">
       <div className="card-body gap-4 p-5">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base">Tasks</h3>
-          <div className="flex items-center gap-2">
-            {activeTaskId && (
-              <button
-                onClick={() => onSelectTask(null)}
-                className="text-xs text-base-content/70 hover:text-base-content transition-colors"
-              >
-                Deselect
-              </button>
-            )}
-            <span className="text-xs text-base-content/70">
-              {tasks.length} task{tasks.length !== 1 ? "s" : ""}
-            </span>
-          </div>
+          <span className="text-xs text-base-content/70">
+            {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+          </span>
         </div>
 
         {/* Hint when no task selected */}
         {!activeTaskId && tasks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20"
-          >
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
             <span className="text-primary text-sm">👆</span>
             <span className="text-xs text-primary font-medium">
               Select a task to start your pomodoro
             </span>
-          </motion.div>
+          </div>
         )}
 
-        <div className="space-y-2">
-          <AnimatePresence mode="popLayout">
-            {tasks.length === 0 && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm text-base-content/70 text-center py-6"
-              >
-                Add a task to get started!
-              </motion.p>
-            )}
-            {tasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                isActive={task.id === activeTaskId}
-                onSelect={() =>
-                  onSelectTask(task.id === activeTaskId ? null : task.id)
-                }
-                onComplete={() => handleComplete(task.id)}
-                onDelete={() => handleDelete(task.id)}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-
         <AddTaskForm onAdd={handleAdd} />
+
+        <div className="space-y-2">
+          {tasks.length === 0 && (
+            <p className="text-sm text-base-content/70 text-center py-6">
+              Add a task to get started!
+            </p>
+          )}
+          {tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              isActive={task.id === activeTaskId}
+              onSelect={() => onSelectTask(task.id)}
+              onComplete={() => handleComplete(task.id)}
+              onDelete={() => handleDelete(task.id)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -2,9 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    optimizePackageImports: ["framer-motion", "recharts"],
+    optimizePackageImports: ["recharts"],
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       {
         protocol: "https",
@@ -28,7 +30,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/(.*)\\.(png|jpg|jpeg|svg|ico|webp)",
+        source: "/(.*)\\.(png|jpg|jpeg|svg|ico|webp|avif|mp3)",
         headers: [
           {
             key: "Cache-Control",

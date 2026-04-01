@@ -4,13 +4,14 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useCallback,
   type ReactNode,
 } from "react";
 import { createSession } from "@/actions/sessions";
-import type { TimerMode, TimerStatus, TimerState } from "@/types";
+import type { TimerMode, TimerState } from "@/types";
 import type { UserSettings } from "@/types";
 
 interface TimerContextValue {
@@ -27,12 +28,57 @@ interface TimerContextValue {
   setMode: (mode: TimerMode) => void;
 }
 
-const TimerContext = createContext<TimerContextValue | null>(null);
+interface ActiveTaskContextValue {
+  activeTaskId: string | null;
+  setActiveTaskId: (id: string | null) => void;
+}
+
+interface TimerActionsContextValue {
+  setSettings: (s: UserSettings) => void;
+  start: () => void;
+  pause: () => void;
+  resume: () => void;
+  reset: () => void;
+  skip: () => void;
+  setMode: (mode: TimerMode) => void;
+}
+
+const TimerStateContext = createContext<TimerState | null>(null);
+const TimerSettingsContext = createContext<UserSettings | null>(null);
+const ActiveTaskContext = createContext<ActiveTaskContextValue | null>(null);
+const TimerActionsContext = createContext<TimerActionsContextValue | null>(null);
+const MIN_PARTIAL_SESSION_SECONDS = 60;
 
 export function useTimerContext() {
-  const ctx = useContext(TimerContext);
-  if (!ctx)
+  const state = useContext(TimerStateContext);
+  const settings = useContext(TimerSettingsContext);
+  const activeTask = useContext(ActiveTaskContext);
+  const actions = useContext(TimerActionsContext);
+
+  if (!state || !activeTask || !actions) {
     throw new Error("useTimerContext must be used within TimerProvider");
+  }
+
+  return {
+    state,
+    settings,
+    activeTaskId: activeTask.activeTaskId,
+    setSettings: actions.setSettings,
+    setActiveTaskId: activeTask.setActiveTaskId,
+    start: actions.start,
+    pause: actions.pause,
+    resume: actions.resume,
+    reset: actions.reset,
+    skip: actions.skip,
+    setMode: actions.setMode,
+  } satisfies TimerContextValue;
+}
+
+export function useActiveTask() {
+  const ctx = useContext(ActiveTaskContext);
+  if (!ctx) {
+    throw new Error("useActiveTask must be used within TimerProvider");
+  }
   return ctx;
 }
 
@@ -59,7 +105,7 @@ function modeToSessionType(mode: TimerMode) {
 }
 
 export function TimerProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [settings, setSettingsState] = useState<UserSettings | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [state, setState] = useState<TimerState>({
     mode: "focus",
@@ -71,10 +117,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const elapsedRef = useRef(0);
-  const startTimeRef = useRef<Date | null>(null);
+  const runStartTimeRef = useRef<number | null>(null);
+  const targetEndTimeRef = useRef<number | null>(null);
   const activeTaskIdRef = useRef<string | null>(null);
   const settingsRef = useRef<UserSettings | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const completingRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => {
@@ -84,14 +132,16 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     settingsRef.current = settings;
   }, [settings]);
 
-  // Update timeRemaining when settings change and timer is idle
-  useEffect(() => {
-    if (!settings) return;
+  const setSettings = useCallback((nextSettings: UserSettings) => {
+    setSettingsState(nextSettings);
     setState((prev) => {
       if (prev.status !== "idle") return prev;
-      return { ...prev, timeRemaining: modeToSeconds(prev.mode, settings) };
+      return {
+        ...prev,
+        timeRemaining: modeToSeconds(prev.mode, nextSettings),
+      };
     });
-  }, [settings]);
+  }, []);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -117,28 +167,76 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Auto-start helper — starts the interval directly
-  const startInterval = useCallback(() => {
+  const getElapsedSeconds = useCallback(() => {
+    const activeRunSeconds = runStartTimeRef.current
+      ? (Date.now() - runStartTimeRef.current) / 1000
+      : 0;
+    return Math.floor(elapsedRef.current + activeRunSeconds);
+  }, []);
+
+  const persistPartialSession = useCallback(() => {
+    const mode = state.mode;
+    const completed = false;
+    const duration = getElapsedSeconds();
+
+    if (state.status !== "running" || duration <= MIN_PARTIAL_SESSION_SECONDS) {
+      return;
+    }
+
+    const payload = JSON.stringify({
+      type: modeToSessionType(mode),
+      duration,
+      completed,
+      taskId: activeTaskIdRef.current ?? undefined,
+    });
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/sessions/partial", payload);
+    }
+  }, [getElapsedSeconds, state.mode, state.status]);
+
+  const resetProgressRefs = useCallback(() => {
+    elapsedRef.current = 0;
+    runStartTimeRef.current = null;
+    targetEndTimeRef.current = null;
+  }, []);
+
+  // Auto-start helper — derives remaining time from the wall clock
+  const startInterval = useCallback((durationSeconds: number) => {
     clearTimer();
-    startTimeRef.current = new Date();
+    runStartTimeRef.current = Date.now();
+    targetEndTimeRef.current = Date.now() + durationSeconds * 1000;
     intervalRef.current = setInterval(() => {
+      if (!targetEndTimeRef.current) return;
+
+      const nextTimeRemaining = Math.max(
+        0,
+        Math.ceil((targetEndTimeRef.current - Date.now()) / 1000),
+      );
+
       setState((prev) => {
-        if (prev.timeRemaining <= 1) {
-          return { ...prev, timeRemaining: 0 };
+        if (prev.timeRemaining === nextTimeRemaining) {
+          return prev;
         }
-        return { ...prev, timeRemaining: prev.timeRemaining - 1 };
+        return { ...prev, timeRemaining: nextTimeRemaining };
       });
-    }, 1000);
+    }, 250);
   }, [clearTimer]);
 
   const handleComplete = useCallback(
     async (mode: TimerMode, completedPomodoros: number) => {
+      if (completingRef.current) return;
+      completingRef.current = true;
       clearTimer();
       const s = settingsRef.current;
-      if (!s) return;
+      if (!s) {
+        completingRef.current = false;
+        return;
+      }
 
       const duration = modeToSeconds(mode, s);
       await saveSession(mode, true, duration);
+      resetProgressRefs();
 
       if (s.soundEnabled) {
         try {
@@ -168,8 +266,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
         // Auto-start break
         if (s.autoStartBreaks) {
-          elapsedRef.current = 0;
-          startInterval();
+          startInterval(nextTime);
         }
       } else {
         // Break done — back to focus
@@ -183,17 +280,21 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         });
 
         if (s.autoStartFocus) {
-          elapsedRef.current = 0;
-          startInterval();
+          startInterval(nextTime);
         }
       }
+      completingRef.current = false;
     },
-    [clearTimer, saveSession, startInterval],
+    [clearTimer, resetProgressRefs, saveSession, startInterval],
   );
 
   // Watch for timer hitting 0
   useEffect(() => {
-    if (state.timeRemaining === 0 && state.status === "running") {
+    if (
+      state.timeRemaining === 0 &&
+      state.status === "running" &&
+      !completingRef.current
+    ) {
       handleComplete(state.mode, state.completedPomodoros);
     }
   }, [
@@ -207,49 +308,56 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   // Cleanup on unmount
   useEffect(() => () => clearTimer(), [clearTimer]);
 
+  useEffect(() => {
+    const handlePageHide = () => {
+      persistPartialSession();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [persistPartialSession]);
+
   const start = useCallback(() => {
-    elapsedRef.current = 0;
+    resetProgressRefs();
     setState((prev) => ({ ...prev, status: "running" }));
-    startInterval();
-  }, [startInterval]);
+    startInterval(state.timeRemaining);
+  }, [resetProgressRefs, startInterval, state.timeRemaining]);
 
   const pause = useCallback(() => {
     clearTimer();
-    if (startTimeRef.current) {
-      elapsedRef.current += Math.floor(
-        (Date.now() - startTimeRef.current.getTime()) / 1000,
-      );
-      startTimeRef.current = null;
+    if (runStartTimeRef.current) {
+      elapsedRef.current += (Date.now() - runStartTimeRef.current) / 1000;
+      runStartTimeRef.current = null;
+      targetEndTimeRef.current = null;
     }
     setState((prev) => ({ ...prev, status: "paused" }));
   }, [clearTimer]);
 
   const resume = useCallback(() => {
-    startTimeRef.current = new Date();
     setState((prev) => ({ ...prev, status: "running" }));
-    startInterval();
-  }, [startInterval]);
+    startInterval(state.timeRemaining);
+  }, [startInterval, state.timeRemaining]);
 
   const reset = useCallback(() => {
     clearTimer();
-    const elapsed = elapsedRef.current;
+    const elapsed = getElapsedSeconds();
     const s = settingsRef.current;
-    if (elapsed > 60 && s) {
+    if (elapsed > MIN_PARTIAL_SESSION_SECONDS && s) {
       saveSession(state.mode, false, elapsed);
     }
-    elapsedRef.current = 0;
-    startTimeRef.current = null;
+    resetProgressRefs();
     setState((prev) => ({
       ...prev,
       status: "idle",
       timeRemaining: s ? modeToSeconds(prev.mode, s) : prev.timeRemaining,
     }));
-  }, [clearTimer, saveSession, state.mode]);
+  }, [clearTimer, getElapsedSeconds, resetProgressRefs, saveSession, state.mode]);
 
   const skip = useCallback(() => {
     clearTimer();
     const s = settingsRef.current;
     if (!s) return;
+    resetProgressRefs();
     const nextMode: TimerMode =
       state.mode === "focus" ? "short_break" : "focus";
     setState((prev) => ({
@@ -258,12 +366,13 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       status: "idle",
       timeRemaining: modeToSeconds(nextMode, s),
     }));
-  }, [clearTimer, state.mode]);
+  }, [clearTimer, resetProgressRefs, state.mode]);
 
   const setMode = useCallback(
     (mode: TimerMode) => {
       clearTimer();
       const s = settingsRef.current;
+      resetProgressRefs();
       setState((prev) => ({
         ...prev,
         mode,
@@ -271,26 +380,27 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         timeRemaining: s ? modeToSeconds(mode, s) : prev.timeRemaining,
       }));
     },
-    [clearTimer],
+    [clearTimer, resetProgressRefs],
+  );
+
+  const activeTaskValue = useMemo(
+    () => ({ activeTaskId, setActiveTaskId }),
+    [activeTaskId],
+  );
+  const actionsValue = useMemo(
+    () => ({ setSettings, start, pause, resume, reset, skip, setMode }),
+    [setSettings, start, pause, resume, reset, skip, setMode],
   );
 
   return (
-    <TimerContext.Provider
-      value={{
-        state,
-        settings,
-        setSettings,
-        activeTaskId,
-        setActiveTaskId,
-        start,
-        pause,
-        resume,
-        reset,
-        skip,
-        setMode,
-      }}
-    >
-      {children}
-    </TimerContext.Provider>
+    <TimerStateContext.Provider value={state}>
+      <TimerSettingsContext.Provider value={settings}>
+        <ActiveTaskContext.Provider value={activeTaskValue}>
+          <TimerActionsContext.Provider value={actionsValue}>
+            {children}
+          </TimerActionsContext.Provider>
+        </ActiveTaskContext.Provider>
+      </TimerSettingsContext.Provider>
+    </TimerStateContext.Provider>
   );
 }

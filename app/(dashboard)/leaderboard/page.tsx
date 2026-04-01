@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getLeaderboard } from "@/actions/sessions";
 import { formatDuration } from "@/lib/utils";
-import { auth } from "@/lib/auth";
 import Image from "next/image";
 import LeaderboardLoading from "./loading";
 
@@ -13,10 +12,7 @@ export const metadata: Metadata = { title: "Leaderboard" };
 const medals = ["🥇", "🥈", "🥉"];
 
 async function LeaderboardContent() {
-  const [entries, session] = await Promise.all([getLeaderboard(), auth()]);
-
-  const currentUserEntry = entries.find((e) => e.isCurrentUser);
-  const currentUserOnBoard = entries.some((e) => e.isCurrentUser);
+  const entries = await getLeaderboard();
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -26,14 +22,6 @@ async function LeaderboardContent() {
           Top focus times in the last 7 days
         </p>
       </div>
-
-      {!currentUserOnBoard && currentUserEntry && (
-        <div className="alert bg-base-200 border border-base-300">
-          <span className="text-sm text-base-content/70">
-            Your rank is not in the top 20 yet. Keep focusing! 💪
-          </span>
-        </div>
-      )}
 
       {entries.length === 0 && (
         <div className="card bg-base-100 shadow">
@@ -132,8 +120,8 @@ async function LeaderboardContent() {
       )}
 
       <p className="text-center text-xs text-base-content/50">
-        Rankings refresh on every page load · Last 7 days · Completed sessions
-        only
+        Rankings refresh after every 5 minutes · Last 7 days · Completed
+        sessions only
       </p>
     </div>
   );

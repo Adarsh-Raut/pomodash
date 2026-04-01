@@ -92,6 +92,7 @@ model PomodoroSession {
   @@index([userId, startedAt])
   @@index([userId, type])
   @@index([userId, type, completed, startedAt])
+  @@index([type, completed, startedAt, userId])
   @@index([taskId])
 }
 
@@ -139,4 +140,5 @@ model Task {
 
   @@index([userId, completed])
   @@index([userId, order])
+  @@index([userId, completed, order, createdAt])
 }

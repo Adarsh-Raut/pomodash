@@ -1,7 +1,7 @@
 // components/settings/SettingsForm.tsx
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { updateSettings } from "@/actions/settings";
 import type { UserSettings } from "@/types";
 import { cn } from "@/lib/utils";
@@ -10,10 +10,110 @@ interface SettingsFormProps {
   settings: UserSettings;
 }
 
+function MinuteInputField({
+  label,
+  valueInSeconds,
+  min,
+  max,
+  hint,
+  onCommit,
+}: {
+  label: string;
+  valueInSeconds: number;
+  min: number;
+  max: number;
+  hint?: string;
+  onCommit: (nextSeconds: number) => void;
+}) {
+  const [raw, setRaw] = useState(String(Math.round(valueInSeconds / 60)));
+
+  useEffect(() => {
+    setRaw(String(Math.round(valueInSeconds / 60)));
+  }, [valueInSeconds]);
+
+  return (
+    <div className="form-control gap-1.5">
+      <label className="label py-0">
+        <span className="label-text font-medium">{label}</span>
+        {hint && <span className="label-text-alt text-base-content/70">{hint}</span>}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          onBlur={() => {
+            const mins = Math.min(max, Math.max(min, Number(raw) || min));
+            setRaw(String(mins));
+            onCommit(mins * 60);
+          }}
+          className="input input-bordered w-24 text-center font-mono text-lg"
+        />
+        <span className="text-sm text-base-content/70">minutes</span>
+      </div>
+    </div>
+  );
+}
+
+function CountInputField({
+  label,
+  value,
+  min,
+  max,
+  unit,
+  hint,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  unit: string;
+  hint?: string;
+  onCommit: (nextValue: number) => void;
+}) {
+  const [raw, setRaw] = useState(String(value));
+
+  useEffect(() => {
+    setRaw(String(value));
+  }, [value]);
+
+  return (
+    <div className="form-control gap-1.5">
+      <label className="label py-0">
+        <span className="label-text font-medium">{label}</span>
+        {hint && <span className="label-text-alt text-base-content/70">{hint}</span>}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          onBlur={() => {
+            const nextValue = Math.min(max, Math.max(min, Number(raw) || min));
+            setRaw(String(nextValue));
+            onCommit(nextValue);
+          }}
+          className="input input-bordered w-24 text-center font-mono text-lg"
+        />
+        <span className="text-sm text-base-content/70">{unit}</span>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsForm({ settings }: SettingsFormProps) {
   const [values, setValues] = useState(settings);
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setValues(settings);
+  }, [settings]);
 
   const handleSave = () => {
     startTransition(async () => {
@@ -33,97 +133,6 @@ export function SettingsForm({ settings }: SettingsFormProps) {
     });
   };
 
-  // Number input for minutes — converts to/from seconds internally
-  const MinuteInput = ({
-    label,
-    field,
-    min,
-    max,
-    hint,
-  }: {
-    label: string;
-    field: keyof UserSettings;
-    min: number;
-    max: number;
-    hint?: string;
-  }) => {
-    const valueInSeconds = values[field] as number;
-    const [raw, setRaw] = useState(String(Math.round(valueInSeconds / 60)));
-
-    return (
-      <div className="form-control gap-1.5">
-        <label className="label py-0">
-          <span className="label-text font-medium">{label}</span>
-          {hint && (
-            <span className="label-text-alt text-base-content/70">{hint}</span>
-          )}
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={min}
-            max={max}
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            onBlur={() => {
-              const mins = Math.min(max, Math.max(min, Number(raw) || min));
-              setRaw(String(mins));
-              setValues((v) => ({ ...v, [field]: mins * 60 }));
-            }}
-            className="input input-bordered w-24 text-center font-mono text-lg"
-          />
-          <span className="text-sm text-base-content/70">minutes</span>
-        </div>
-      </div>
-    );
-  };
-
-  // Number input for plain integers (e.g. long break interval)
-  const CountInput = ({
-    label,
-    field,
-    min,
-    max,
-    unit,
-    hint,
-  }: {
-    label: string;
-    field: keyof UserSettings;
-    min: number;
-    max: number;
-    unit: string;
-    hint?: string;
-  }) => {
-    const [raw, setRaw] = useState(String(values[field] as number));
-
-    return (
-      <div className="form-control gap-1.5">
-        <label className="label py-0">
-          <span className="label-text font-medium">{label}</span>
-          {hint && (
-            <span className="label-text-alt text-base-content/70">{hint}</span>
-          )}
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={min}
-            max={max}
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            onBlur={() => {
-              const val = Math.min(max, Math.max(min, Number(raw) || min));
-              setRaw(String(val));
-              setValues((v) => ({ ...v, [field]: val }));
-            }}
-            className="input input-bordered w-24 text-center font-mono text-lg"
-          />
-          <span className="text-sm text-base-content/70">{unit}</span>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* Timer Durations */}
@@ -131,34 +140,46 @@ export function SettingsForm({ settings }: SettingsFormProps) {
         <div className="card-body gap-6">
           <h2 className="card-title text-base">Timer Durations</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <MinuteInput
+            <MinuteInputField
               label="Focus"
-              field="focusDuration"
+              valueInSeconds={values.focusDuration}
               min={1}
               max={120}
               hint="5–60 min recommended"
+              onCommit={(nextSeconds) =>
+                setValues((v) => ({ ...v, focusDuration: nextSeconds }))
+              }
             />
-            <MinuteInput
+            <MinuteInputField
               label="Short Break"
-              field="shortBreakDuration"
+              valueInSeconds={values.shortBreakDuration}
               min={1}
               max={30}
               hint="3–10 min recommended"
+              onCommit={(nextSeconds) =>
+                setValues((v) => ({ ...v, shortBreakDuration: nextSeconds }))
+              }
             />
-            <MinuteInput
+            <MinuteInputField
               label="Long Break"
-              field="longBreakDuration"
+              valueInSeconds={values.longBreakDuration}
               min={1}
               max={60}
               hint="15–30 min recommended"
+              onCommit={(nextSeconds) =>
+                setValues((v) => ({ ...v, longBreakDuration: nextSeconds }))
+              }
             />
-            <CountInput
+            <CountInputField
               label="Long Break Every"
-              field="longBreakInterval"
+              value={values.longBreakInterval}
               min={2}
               max={10}
               unit="pomodoros"
               hint="Default: 4"
+              onCommit={(nextValue) =>
+                setValues((v) => ({ ...v, longBreakInterval: nextValue }))
+              }
             />
           </div>
         </div>

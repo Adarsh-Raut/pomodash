@@ -1,11 +1,23 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { formatDuration } from "@/lib/utils";
 import { getChartData, type ChartData } from "@/actions/sessions";
-import { motion, AnimatePresence } from "framer-motion";
 import { Timer, TrendingUp, Flame, CheckSquare } from "lucide-react";
-import { TaskStackedChart, type DayTaskData } from "@/components/stats/TaskStackedChart";
+
+const TaskStackedChart = dynamic(
+  () =>
+    import("@/components/stats/TaskStackedChart").then((mod) => mod.TaskStackedChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-72 flex items-center justify-center">
+        <span className="loading loading-spinner loading-md text-primary" />
+      </div>
+    ),
+  },
+);
 
 type Period = "week" | "month" | "year";
 
@@ -54,6 +66,7 @@ function getPeriodLabel(period: Period, offset: number): string {
 
 interface StatCards {
   totalFocusTime: number;
+  partialFocusTime: number;
   completedSessions: number;
   currentStreak: number;
   longestStreak: number;
@@ -135,9 +148,9 @@ export function StatsShell({
             icon: <Timer className="w-5 h-5" style={{ color: "#60a5fa" }} />,
           },
           {
-            label: "Daily Avg",
-            value: formatDuration(Math.round(initialCards.totalFocusTime / 7)),
-            sub: "per day",
+            label: "Partial Focus",
+            value: formatDuration(initialCards.partialFocusTime),
+            sub: "incomplete sessions",
             color: "#34d399",
             icon: (
               <TrendingUp className="w-5 h-5" style={{ color: "#34d399" }} />
@@ -247,27 +260,17 @@ export function StatsShell({
           </div>
 
           <div className="relative min-h-[280px]">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`${period}-${offset}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                {isPending && hasFetched ? (
-                  <div className="h-72 flex items-center justify-center">
-                    <span className="loading loading-spinner loading-md text-primary" />
-                  </div>
-                ) : (
-                  <TaskStackedChart
-                    data={chartData.data}
-                    tasks={tasks}
-                    emptyMessage={`No focus sessions in ${getPeriodLabel(period, offset).toLowerCase()}.`}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            {isPending && hasFetched ? (
+              <div className="h-72 flex items-center justify-center">
+                <span className="loading loading-spinner loading-md text-primary" />
+              </div>
+            ) : (
+              <TaskStackedChart
+                data={chartData.data}
+                tasks={tasks}
+                emptyMessage={`No focus sessions in ${getPeriodLabel(period, offset).toLowerCase()}.`}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,6 @@ export const revalidate = 60;
 
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { auth } from "@/lib/auth";
 import { getSessionStats, getChartData } from "@/actions/sessions";
 import { getTaskStats } from "@/actions/tasks";
 import { StatsShell } from "@/components/stats/StatsShell";
@@ -48,9 +47,6 @@ function calculateStreaks(sessions: { startedAt: Date; completed: boolean }[]) {
 }
 
 async function StatsContent() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-
   const [weeklySessions, taskStats, initialChartData] = await Promise.all([
     getSessionStats("week"),
     getTaskStats(),
@@ -64,12 +60,16 @@ async function StatsContent() {
     (acc: number, s: { duration: number }) => acc + s.duration,
     0,
   );
+  const partialFocusTime = weeklySessions
+    .filter((s: { completed: boolean }) => !s.completed)
+    .reduce((acc: number, s: { duration: number }) => acc + s.duration, 0);
   const { currentStreak, longestStreak } = calculateStreaks(weeklySessions);
 
   return (
     <StatsShell
       initialCards={{
         totalFocusTime,
+        partialFocusTime,
         completedSessions: completedSessions.length,
         currentStreak,
         longestStreak,

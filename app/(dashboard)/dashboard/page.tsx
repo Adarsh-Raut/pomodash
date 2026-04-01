@@ -30,9 +30,19 @@ async function DashboardContent() {
     ) => acc + s.duration,
     0,
   );
+  const partialFocusTime = todaySessions
+    .filter((s: { completed: boolean }) => !s.completed)
+    .reduce(
+      (
+        acc: number,
+        s: { completed: boolean; duration: number; startedAt: Date },
+      ) => acc + s.duration,
+      0,
+    );
 
   const todayStats = {
     focusTime: formatDuration(totalFocusTime),
+    partialFocusTime: formatDuration(partialFocusTime),
     completed: completed.length,
     total: todaySessions.length,
   };

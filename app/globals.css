@@ -8,6 +8,12 @@ html {
   scrollbar-gutter: stable;
 }
 
+body {
+  font-family:
+    "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", sans-serif;
+}
+
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
@@ -36,4 +42,3 @@ html {
   --color-base-300: oklch(0.30 0.04 260);
   --color-base-content: oklch(0.93 0.01 260);
 }
-

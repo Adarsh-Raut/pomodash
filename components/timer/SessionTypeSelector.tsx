@@ -30,7 +30,7 @@ export function SessionTypeSelector({
             onClick={() => !disabled && onModeChange(value)}
             disabled={disabled}
             className={cn(
-              "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
+              "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer",
               currentMode === value
                 ? "bg-base-100 text-base-content shadow-sm"
                 : "text-base-content/70 hover:text-base-content",

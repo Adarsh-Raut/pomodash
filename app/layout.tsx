@@ -1,15 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { SessionProvider } from "@/components/providers/SessionProvider";
-import { TimerProvider } from "@/components/providers/TimerProvider";
 import "./globals.css";
-
-const inter = Inter({ 
-  subsets: ["latin"], 
-  display: "swap",
-  preload: true,
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: { template: "%s | Pomodash", default: "Pomodash — Stay Focused" },
@@ -40,13 +30,8 @@ export default function RootLayout({
             `,
           }}
         />
-        <link rel="icon" href="/tomato.png" />
       </head>
-      <body className={`${inter.className} antialiased`}>
-        <SessionProvider>
-          <TimerProvider>{children}</TimerProvider>
-        </SessionProvider>
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

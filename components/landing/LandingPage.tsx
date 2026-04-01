@@ -1,10 +1,5 @@
-// components/landing/LandingPage.tsx
-"use client";
-
-import { signIn } from "next-auth/react";
-import { useState, useEffect, useRef } from "react";
-import { motion, useInView } from "framer-motion";
 import Image from "next/image";
+import { SignInButton } from "./SignInButton";
 
 const features = [
   {
@@ -35,154 +30,14 @@ const stats = [
   { value: "4", unit: "×", label: "Sessions before long break" },
 ];
 
-// Animated ticking clock display
-function LiveClock() {
-  const [time, setTime] = useState("25:00");
-  const [ticking, setTicking] = useState(false);
-  const [seconds, setSeconds] = useState(1500);
-
-  useEffect(() => {
-    if (!ticking) return;
-    const interval = setInterval(() => {
-      setSeconds((s) => {
-        if (s <= 0) {
-          setTicking(false);
-          return 1500;
-        }
-        const next = s - 1;
-        const m = Math.floor(next / 60);
-        const sec = next % 60;
-        setTime(
-          `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`,
-        );
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [ticking]);
-
-  const progress = ((1500 - seconds) / 1500) * 100;
-  const radius = 120;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - progress / 100);
-
-  return (
-    <div className="relative flex items-center justify-center select-none">
-      {/* Outer glow ring */}
-      <div
-        className="absolute rounded-full blur-3xl opacity-20"
-        style={{
-          width: 340,
-          height: 340,
-          background: "oklch(0.546 0.245 262.881)",
-        }}
-      />
-
-      {/* SVG clock ring */}
-      <svg
-        width="300"
-        height="300"
-        viewBox="0 0 300 300"
-        className="-rotate-90"
-      >
-        {/* Track */}
-        <circle
-          cx="150"
-          cy="150"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="6"
-          className="text-white/20"
-        />
-        {/* Progress */}
-        <motion.circle
-          cx="150"
-          cy="150"
-          r={radius}
-          fill="none"
-          stroke="oklch(0.546 0.245 262.881)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.8, ease: "linear" }}
-        />
-      </svg>
-
-      {/* Center content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-        <motion.div
-          key={time}
-          initial={{ opacity: 0.6 }}
-          animate={{ opacity: 1 }}
-          className="font-mono text-6xl font-bold tracking-tight text-white"
-          style={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          {time}
-        </motion.div>
-        <button
-          onClick={() => {
-            setTicking((t) => !t);
-            if (!ticking) {
-              setSeconds(1500);
-              setTime("25:00");
-            }
-          }}
-          className="text-xs font-semibold tracking-widest uppercase px-4 py-1.5 rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-all"
-        >
-          {ticking ? "PAUSE" : "TRY IT"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  index,
-}: {
-  icon: string;
-  title: string;
-  desc: string;
-  index: number;
-}) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
-      className="group p-6 rounded-2xl border border-white/20 bg-white/8 hover:bg-white/12 hover:border-white/35 transition-all duration-300"
-    >
-      <div className="text-3xl mb-4">{icon}</div>
-      <h3 className="font-bold text-white text-lg mb-2">{title}</h3>
-      <p className="text-white/50 text-sm leading-relaxed">{desc}</p>
-    </motion.div>
-  );
-}
-
 export function LandingPage() {
-  const [loading, setLoading] = useState(false);
-
-  const handleSignIn = async () => {
-    setLoading(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
-  };
-
   return (
     <div
-      className="min-h-screen text-white overflow-x-hidden"
+      className="min-h-screen overflow-x-hidden text-white"
       style={{ background: "oklch(0.18 0.05 260)" }}
     >
-      {/* Subtle grid background */}
       <div
-        className="fixed inset-0 opacity-[0.06] pointer-events-none"
+        className="pointer-events-none fixed inset-0 opacity-[0.06]"
         style={{
           backgroundImage: `linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px),
                             linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)`,
@@ -190,81 +45,58 @@ export function LandingPage() {
         }}
       />
 
-      {/* Top nav */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
+      <nav className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
-          {/* <span className="text-2xl">🍅</span> */}
           <Image
-              src="/tomato.png"
-              alt="Pomodash"
-              width={28}
-              height={28}
-              quality={50}
-              className="rounded-sm"
-            />
-          <span className="font-bold text-lg tracking-tight">Pomodash</span>
+            src="/tomato.png"
+            alt="Pomodash"
+            width={28}
+            height={28}
+            quality={50}
+            priority
+            className="rounded-sm"
+          />
+          <span className="text-lg font-bold tracking-tight">Pomodash</span>
         </div>
-        <button
-          onClick={handleSignIn}
-          disabled={loading}
-          className="px-4 py-2 rounded-lg text-sm font-semibold border border-white/40 text-white hover:border-white/70 hover:bg-white/10 transition-all"
-        >
-          {loading ? "..." : "Sign in"}
-        </button>
+        <SignInButton className="rounded-lg border border-white/40 px-4 py-2 text-sm font-semibold text-white transition-all hover:border-white/70 hover:bg-white/10 disabled:opacity-70">
+          Sign in
+        </SignInButton>
       </nav>
 
-      {/* Hero */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left — copy */}
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24 pt-16">
+        <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
           <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/50 text-xs font-medium tracking-wider uppercase mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <div>
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-white/50">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
                 Focus · Rest · Repeat
               </div>
 
-              <h1 className="text-6xl lg:text-7xl font-black leading-[0.95] tracking-tight">
+              <h1 className="text-6xl font-black leading-[0.95] tracking-tight lg:text-7xl">
                 Deep work,
                 <br />
                 <span style={{ color: "oklch(0.546 0.245 262.881)" }}>
                   measured.
                 </span>
               </h1>
-            </motion.div>
+            </div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15 }}
-              className="text-white/50 text-lg leading-relaxed max-w-md"
-            >
+            <p className="max-w-md text-lg leading-relaxed text-white/50">
               A Pomodoro timer that tracks every session, visualizes your focus
               patterns, and shows where you stand among the most productive
               people you know.
-            </motion.p>
+            </p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-              className="flex items-center gap-4"
-            >
-              <button
-                onClick={handleSignIn}
-                disabled={loading}
-                className="group flex items-center gap-3 px-6 py-3.5 rounded-xl font-bold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
+            <div className="flex items-center gap-4">
+              <SignInButton
+                className="group flex items-center gap-3 rounded-xl px-6 py-3.5 font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
                 style={{ background: "oklch(0.546 0.245 262.881)" }}
               >
-                {loading ? (
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  // Google icon
-                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <span
+                  className="inline-flex items-center gap-3"
+                  style={{ color: "inherit" }}
+                >
+                  <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
                     <path
                       fill="#fff"
                       fillOpacity=".9"
@@ -286,100 +118,136 @@ export function LandingPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                )}
-                Continue with Google
-              </button>
+                  Continue with Google
+                </span>
+              </SignInButton>
 
-              <span className="text-white/30 text-sm">
+              <span className="text-sm text-white/30">
                 Free · No credit card
               </span>
-            </motion.div>
+            </div>
 
-            {/* Stats row */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="flex items-center gap-8 pt-4 border-t border-white/10"
-            >
+            <div className="flex items-center gap-8 border-t border-white/10 pt-4">
               {stats.map(({ value, unit, label }) => (
                 <div key={label}>
                   <div className="text-2xl font-black text-white">
                     {value}
-                    <span className="text-white/40 text-lg">{unit}</span>
+                    <span className="text-lg text-white/40">{unit}</span>
                   </div>
-                  <div className="text-white/40 text-xs mt-0.5">{label}</div>
+                  <div className="mt-0.5 text-xs text-white/40">{label}</div>
                 </div>
               ))}
-            </motion.div>
+            </div>
           </div>
 
-          {/* Right — live clock demo */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-            className="flex justify-center"
-          >
-            <LiveClock />
-          </motion.div>
+          <div className="flex justify-center">
+            <div className="relative flex select-none items-center justify-center">
+              <div
+                className="absolute rounded-full opacity-20 blur-3xl"
+                style={{
+                  width: 340,
+                  height: 340,
+                  background: "oklch(0.546 0.245 262.881)",
+                }}
+              />
+              <svg
+                width="300"
+                height="300"
+                viewBox="0 0 300 300"
+                className="-rotate-90"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="150"
+                  cy="150"
+                  r="120"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  className="text-white/20"
+                />
+                <circle
+                  cx="150"
+                  cy="150"
+                  r="120"
+                  fill="none"
+                  stroke="oklch(0.546 0.245 262.881)"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray="754"
+                  strokeDashoffset="188"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <div
+                  className="font-mono text-6xl font-bold tracking-tight text-white"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  25:00
+                </div>
+                <div className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white/60">
+                  Ready
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Features grid */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-black text-white mb-3">
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
+        <div className="mb-12 text-center">
+          <h2 className="mb-3 text-3xl font-black text-white">
             Everything you need to stay in flow
           </h2>
-          <p className="text-white/40 text-sm">
+          <p className="text-sm text-white/40">
             Built for people who take their time seriously.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <FeatureCard key={f.title} {...f} index={i} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature) => (
+            <div
+              key={feature.title}
+              className="rounded-2xl border border-white/20 bg-white/8 p-6 transition-colors hover:border-white/35 hover:bg-white/12"
+            >
+              <div className="mb-4 text-3xl">{feature.icon}</div>
+              <h3 className="mb-2 text-lg font-bold text-white">
+                {feature.title}
+              </h3>
+              <p className="text-sm leading-relaxed text-white/50">
+                {feature.desc}
+              </p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* CTA banner */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pb-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="rounded-3xl p-12 text-center relative overflow-hidden"
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
+        <div
+          className="relative overflow-hidden rounded-3xl p-12 text-center"
           style={{ background: "oklch(0.24 0.06 260)" }}
         >
-          {/* Decorative glow */}
           <div
-            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl opacity-30 pointer-events-none"
+            className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl"
             style={{ background: "oklch(0.546 0.245 262.881)" }}
           />
-          <h2 className="text-4xl font-black text-white mb-4 relative">
+          <h2 className="relative mb-4 text-4xl font-black text-white">
             Start your first session.
           </h2>
-          <p className="text-white/40 mb-8 relative">
+          <p className="relative mb-8 text-white/40">
             Takes 10 seconds to sign in. Takes 25 minutes to get things done.
           </p>
-          <button
-            onClick={handleSignIn}
-            disabled={loading}
-            className="px-8 py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-[1.02] active:scale-[0.98] relative"
+          <SignInButton
+            className="relative rounded-xl px-8 py-4 text-lg font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
             style={{ background: "oklch(0.546 0.245 262.881)" }}
           >
-            {loading ? "Signing in..." : "Get started free →"}
-          </button>
-        </motion.div>
+            <span style={{ color: "inherit" }}>Get started free →</span>
+          </SignInButton>
+        </div>
       </section>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-white/10 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-white/20 text-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-sm text-white/20">
           <div className="flex items-center gap-2">
-            {/* <span>🍅</span> */}
             <Image
               src="/tomato.png"
               alt="Pomodash"

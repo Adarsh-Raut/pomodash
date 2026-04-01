@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { formatTime } from "@/lib/utils";
 import type { TimerStatus, TimerMode } from "@/types";
 
@@ -33,6 +32,19 @@ export function TimerDisplay({
         ? "stroke-secondary"
         : "stroke-accent";
 
+  const statusLabel =
+    status === "running"
+      ? mode === "focus"
+        ? "focusing..."
+        : mode === "short_break"
+          ? "short break"
+          : "long break"
+      : status === "paused"
+        ? "paused"
+        : status === "completed"
+          ? "done!"
+          : "ready";
+
   return (
     <div className="flex justify-center">
       <div className="relative w-56 h-56">
@@ -50,8 +62,8 @@ export function TimerDisplay({
             className="stroke-base-300"
             strokeWidth="8"
           />
-          {/* Progress — no animation on first render, only animate when running */}
-          <motion.circle
+          {/* Progress */}
+          <circle
             cx="100"
             cy="100"
             r={RADIUS}
@@ -61,12 +73,10 @@ export function TimerDisplay({
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={strokeDashoffset}
-            animate={{ strokeDashoffset }}
-            transition={
-              status === "running"
-                ? { duration: 0.5, ease: "linear" }
-                : { duration: 0 } // instant update when idle/paused — no flash
-            }
+            style={{
+              transition:
+                status === "running" ? "stroke-dashoffset 500ms linear" : "none",
+            }}
           />
         </svg>
 
@@ -74,15 +84,7 @@ export function TimerDisplay({
           <span className="text-5xl font-bold tabular-nums text-base-content">
             {formatTime(timeRemaining)}
           </span>
-          <span className="text-sm text-base-content/70 mt-1">
-            {status === "running"
-              ? "focusing..."
-              : status === "paused"
-                ? "paused"
-                : status === "completed"
-                  ? "done!"
-                  : "ready"}
-          </span>
+          <span className="text-sm text-base-content/70 mt-1">{statusLabel}</span>
         </div>
       </div>
     </div>

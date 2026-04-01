@@ -1,6 +1,7 @@
 // actions/tasks.ts
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -26,7 +27,7 @@ export async function getTasks() {
 
   return prisma.task.findMany({
     where: { userId: session.user.id, completed: false },
-    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ createdAt: "desc" }, { order: "desc" }],
     select: {
       id: true,
       userId: true,
@@ -68,22 +69,26 @@ export async function createTask(input: unknown) {
 
   const validated = createTaskSchema.parse(input);
 
-  // Place new task at the end
-  const lastTask = await prisma.task.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { order: "desc" },
-    select: { order: true },
-  });
+  const task = await prisma.$transaction(
+    async (tx) => {
+      const lastTask = await tx.task.findFirst({
+        where: { userId: session.user.id },
+        orderBy: { order: "desc" },
+        select: { order: true },
+      });
 
-  const task = await prisma.task.create({
-    data: {
-      userId: session.user.id,
-      title: validated.title,
-      description: validated.description,
-      estimatedPomodoros: validated.estimatedPomodoros,
-      order: (lastTask?.order ?? 0) + 1,
+      return tx.task.create({
+        data: {
+          userId: session.user.id,
+          title: validated.title,
+          description: validated.description,
+          estimatedPomodoros: validated.estimatedPomodoros,
+          order: (lastTask?.order ?? 0) + 1,
+        },
+      });
     },
-  });
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 
   revalidatePath("/dashboard");
   return task;
@@ -134,29 +139,55 @@ export async function getTaskStats() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const tasks = await prisma.task.findMany({
-    where: { userId: session.user.id },
-    include: {
-      sessions: {
-        where: {
-          type: "FOCUS",
-          completed: true,
-          startedAt: { gte: sevenDaysAgo },
-        },
-      },
+  const sessionStats = await prisma.pomodoroSession.groupBy({
+    by: ["taskId"],
+    where: {
+      userId: session.user.id,
+      taskId: { not: null },
+      type: "FOCUS",
+      startedAt: { gte: sevenDaysAgo },
     },
-    orderBy: { createdAt: "desc" },
+    _sum: { duration: true },
+    _count: { id: true },
   });
 
-  return tasks
-    .filter((task) => task.sessions.length > 0)
-    .map((task) => ({
+  const taskIds = sessionStats
+    .map((stat) => stat.taskId)
+    .filter((taskId): taskId is string => taskId !== null);
+
+  if (taskIds.length === 0) {
+    return [];
+  }
+
+  const tasks = await prisma.task.findMany({
+    where: { userId: session.user.id, id: { in: taskIds } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      completed: true,
+      estimatedPomodoros: true,
+      completedPomodoros: true,
+    },
+  });
+
+  const statsByTaskId = new Map(
+    sessionStats.map((stat) => [
+      stat.taskId,
+      {
+        totalFocusTime: stat._sum.duration ?? 0,
+        sessionCount: stat._count.id,
+      },
+    ]),
+  );
+
+  return tasks.map((task) => ({
       id: task.id,
       title: task.title,
       completed: task.completed,
       estimatedPomodoros: task.estimatedPomodoros,
       completedPomodoros: task.completedPomodoros,
-      totalFocusTime: task.sessions.reduce((acc, s) => acc + s.duration, 0),
-      sessionCount: task.sessions.length,
-    }));
+      totalFocusTime: statsByTaskId.get(task.id)?.totalFocusTime ?? 0,
+      sessionCount: statsByTaskId.get(task.id)?.sessionCount ?? 0,
+  }));
 }

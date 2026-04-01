@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Settings, LogOut } from "lucide-react";
 
 interface NavbarProps {
@@ -25,20 +25,15 @@ const navLinks = [
 
 export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") {
+      return "dark";
+    }
+
+    const saved = localStorage.getItem("theme");
+    return saved === "light" ? "light" : "dark";
+  });
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-    const preferred = saved ?? "dark";
-    setTheme(preferred);
-    document.documentElement.setAttribute("data-theme", preferred);
-  }, []);
-
-  // Close menu on route change
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -55,7 +50,6 @@ export function Navbar({ user }: NavbarProps) {
           <div className="flex items-center">
             <Link
               href="/dashboard"
-              prefetch={false}
               className="flex items-center gap-2"
             >
               {/* <span className="text-xl">🍅</span> */}
@@ -78,7 +72,6 @@ export function Navbar({ user }: NavbarProps) {
               <Link
                 key={href}
                 href={href}
-                prefetch={false}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   pathname === href
@@ -99,30 +92,16 @@ export function Navbar({ user }: NavbarProps) {
               className="btn btn-ghost btn-sm btn-circle text-base-content/70 hover:text-base-content"
               aria-label="Toggle theme"
             >
-              {theme === "light" ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-                </svg>
-              )}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+              </svg>
             </button>
 
             {/* Avatar dropdown — desktop only */}
@@ -161,7 +140,6 @@ export function Navbar({ user }: NavbarProps) {
                 <li>
                   <Link
                     href="/settings"
-                    prefetch={false}
                     className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-base-200 transition-colors"
                   >
                     <Settings className="w-4 h-4 text-base-content/70" />
@@ -170,7 +148,7 @@ export function Navbar({ user }: NavbarProps) {
                 </li>
                 <li>
                   <button
-                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    onClick={() => signOut({ callbackUrl: "/" })}
                     className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
@@ -250,7 +228,7 @@ export function Navbar({ user }: NavbarProps) {
               <Link
                 key={href}
                 href={href}
-                prefetch={false}
+                onClick={() => setMenuOpen(false)}
                 className={cn(
                   "flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                   pathname === href
@@ -266,7 +244,7 @@ export function Navbar({ user }: NavbarProps) {
           {/* Sign out */}
           <div className="px-3 py-2 border-t border-base-300">
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: "/" })}
               className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-error hover:bg-error/10 transition-colors"
             >
               <LogOut className="w-4 h-4" />

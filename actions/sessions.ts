@@ -27,24 +27,30 @@ export async function createSession(input: CreateSessionInput) {
   // Validate input with Zod — never trust client data
   const validated = createSessionSchema.parse(input);
 
-  const pomodoroSession = await prisma.pomodoroSession.create({
-    data: {
-      userId: session.user.id,
-      type: validated.type,
-      duration: validated.duration,
-      completed: validated.completed,
-      completedAt: validated.completed ? new Date() : null,
-      notes: validated.notes,
-      taskId: validated.taskId, // add this
-    },
-  });
+  const pomodoroSession = await prisma.$transaction(async (tx) => {
+    if (validated.completed && validated.type === "FOCUS" && validated.taskId) {
+      const updatedTask = await tx.task.updateMany({
+        where: { id: validated.taskId, userId: session.user.id },
+        data: { completedPomodoros: { increment: 1 } },
+      });
 
-  if (validated.completed && validated.type === "FOCUS" && validated.taskId) {
-    await prisma.task.update({
-      where: { id: validated.taskId },
-      data: { completedPomodoros: { increment: 1 } },
+      if (updatedTask.count === 0) {
+        throw new Error("Task not found");
+      }
+    }
+
+    return tx.pomodoroSession.create({
+      data: {
+        userId: session.user.id,
+        type: validated.type,
+        duration: validated.duration,
+        completed: validated.completed,
+        completedAt: validated.completed ? new Date() : null,
+        notes: validated.notes,
+        taskId: validated.taskId,
+      },
     });
-  }
+  });
 
   // Invalidate the stats pages so they re-fetch fresh data
   revalidatePath("/dashboard");
@@ -91,6 +97,11 @@ export async function getSessionStats(period: "day" | "week" | "month") {
           type: "FOCUS",
         },
         orderBy: { startedAt: "asc" },
+        select: {
+          completed: true,
+          duration: true,
+          startedAt: true,
+        },
       });
     },
     [`sessions-${userId}-${period}`],
@@ -164,7 +175,12 @@ export async function getSessionsInRange(start: Date, end: Date) {
       startedAt: { gte: start, lte: end },
       taskId: { not: null },
     },
-    include: { task: { select: { id: true, title: true } } },
+    select: {
+      taskId: true,
+      duration: true,
+      startedAt: true,
+      task: { select: { id: true, title: true } },
+    },
     orderBy: { startedAt: "asc" },
   });
 }
@@ -177,6 +193,14 @@ export type ChartData = {
   tasks: ChartTask[];
   data: ChartDataPoint[];
 };
+
+function getChartTaskKey(taskId: string, completed: boolean) {
+  return completed ? taskId : `${taskId}__partial`;
+}
+
+function getChartTaskTitle(title: string, completed: boolean) {
+  return completed ? title : `${title} (partial)`;
+}
 
 function getChartDateRange(
   period: "week" | "month" | "year",
@@ -254,45 +278,83 @@ export async function getChartData(
     where: {
       userId: session.user.id,
       type: "FOCUS",
-      completed: true,
       startedAt: { gte: start, lte: end },
       taskId: { not: null },
     },
-    include: { task: { select: { id: true, title: true } } },
+    select: {
+      taskId: true,
+      duration: true,
+      completed: true,
+      startedAt: true,
+      task: { select: { id: true, title: true } },
+    },
     orderBy: { startedAt: "asc" },
   });
 
-  const taskMap = new Map<string, { id: string; title: string }>();
+  const taskMap = new Map<
+    string,
+    { id: string; title: string; latestStartedAt: number }
+  >();
   sessions.forEach((s) => {
-    if (s.task) taskMap.set(s.task.id, s.task);
-  });
-  const tasks = Array.from(taskMap.values());
+    if (!s.task || !s.taskId) return;
 
-  const data: ChartDataPoint[] = buckets.map(({ date, dateObj }) => {
+    const chartTaskId = getChartTaskKey(s.taskId, s.completed);
+    const latestStartedAt = new Date(s.startedAt).getTime();
+    const existing = taskMap.get(chartTaskId);
+
+    taskMap.set(chartTaskId, {
+      id: chartTaskId,
+      title: getChartTaskTitle(s.task.title, s.completed),
+      latestStartedAt: existing
+        ? Math.max(existing.latestStartedAt, latestStartedAt)
+        : latestStartedAt,
+    });
+  });
+  const tasks = Array.from(taskMap.values())
+    .sort((a, b) => a.latestStartedAt - b.latestStartedAt)
+    .map(({ id, title }) => ({ id, title }));
+
+  const bucketKeyToIndex = new Map<string, number>();
+  buckets.forEach(({ dateObj }, index) => {
+    const key =
+      period === "year"
+        ? `${dateObj.getFullYear()}-${dateObj.getMonth()}`
+        : dateObj.toDateString();
+    bucketKeyToIndex.set(key, index);
+  });
+
+  const data: ChartDataPoint[] = buckets.map(({ date }) => {
     const row: ChartDataPoint = { date };
     tasks.forEach((task) => {
-      let secs = 0;
-      if (period === "year") {
-        secs = sessions
-          .filter(
-            (s) =>
-              s.taskId === task.id &&
-              new Date(s.startedAt).getMonth() === dateObj.getMonth() &&
-              new Date(s.startedAt).getFullYear() === dateObj.getFullYear()
-          )
-          .reduce((acc, s) => acc + s.duration, 0);
-      } else {
-        secs = sessions
-          .filter(
-            (s) =>
-              s.taskId === task.id &&
-              new Date(s.startedAt).toDateString() === dateObj.toDateString()
-          )
-          .reduce((acc, s) => acc + s.duration, 0);
-      }
-      row[task.id] = Math.round(secs / 60);
+      row[task.id] = 0;
     });
     return row;
+  });
+
+  sessions.forEach((session) => {
+    if (!session.taskId) return;
+
+    const startedAt = new Date(session.startedAt);
+    const bucketKey =
+      period === "year"
+        ? `${startedAt.getFullYear()}-${startedAt.getMonth()}`
+        : startedAt.toDateString();
+    const bucketIndex = bucketKeyToIndex.get(bucketKey);
+    const chartTaskId = getChartTaskKey(session.taskId, session.completed);
+
+    if (bucketIndex === undefined) return;
+
+    const currentValue = data[bucketIndex][chartTaskId];
+    data[bucketIndex][chartTaskId] =
+      typeof currentValue === "number"
+        ? currentValue + session.duration / 60
+        : session.duration / 60;
+  });
+
+  data.forEach((row) => {
+    tasks.forEach((task) => {
+      row[task.id] = Math.round((row[task.id] as number) || 0);
+    });
   });
 
   return { buckets, tasks, data };
