@@ -4,7 +4,12 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { TimerProvider } from "@/components/providers/TimerProvider";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], display: "optional" });
+const inter = Inter({ 
+  subsets: ["latin"], 
+  display: "swap",
+  preload: true,
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: { template: "%s | Pomodash", default: "Pomodash — Stay Focused" },
