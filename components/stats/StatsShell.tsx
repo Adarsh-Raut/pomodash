@@ -252,7 +252,7 @@ export function StatsShell({ initialSnapshot }: StatsShellProps) {
             <h2 className="font-bold">Task Breakdown</h2>
           </div>
           <div className="overflow-x-auto mt-4">
-            <table className="table table-zebra">
+            <table className="table">
               <thead>
                 <tr className="text-xs uppercase text-base-content/50 tracking-wider">
                   <th>Task</th>
@@ -270,7 +270,10 @@ export function StatsShell({ initialSnapshot }: StatsShellProps) {
                       (task.completedPomodoros / task.estimatedPomodoros) * 100,
                     );
                     return (
-                      <tr key={task.id}>
+                      <tr
+                        key={task.id}
+                        className={task.isArchived ? "opacity-75" : undefined}
+                      >
                         <td>
                           <div className="flex items-center gap-2">
                             <div
@@ -278,10 +281,17 @@ export function StatsShell({ initialSnapshot }: StatsShellProps) {
                               style={{ background: COLORS[i % COLORS.length] }}
                             />
                             <div>
-                              <p className="font-medium text-sm truncate max-w-[180px]">
-                                {task.title}
-                                {task.isPartialOnly ? " (partial)" : ""}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm truncate max-w-[180px]">
+                                  {task.title}
+                                  {task.isPartialOnly ? " (partial)" : ""}
+                                </p>
+                                {task.isArchived && (
+                                  <span className="badge badge-sm badge-outline border-base-content/20 text-base-content/60">
+                                    Archived
+                                  </span>
+                                )}
+                              </div>
                               <div className="w-20 bg-base-300 rounded-full h-1 mt-1">
                                 <div
                                   className="h-full rounded-full"
@@ -307,11 +317,7 @@ export function StatsShell({ initialSnapshot }: StatsShellProps) {
                           {formatDuration(task.totalFocusTime)}
                         </td>
                         <td className="text-right">
-                          {task.isArchived ? (
-                            <span className="badge badge-ghost badge-sm">
-                              Archived
-                            </span>
-                          ) : task.completed ? (
+                          {task.completed ? (
                             <span className="badge badge-success badge-sm">
                               Done
                             </span>
