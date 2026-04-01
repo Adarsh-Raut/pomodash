@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { CreateSessionInput } from "@/types";
 import { unstable_cache } from "next/cache";
+import { getDateRange } from "@/lib/utils";
 
 // Input validation schema
 const createSessionSchema = z.object({
@@ -67,7 +68,6 @@ export async function getSessionStats(period: "day" | "week" | "month") {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
-  const { getDateRange } = await import("@/lib/utils");
   const { start, end } = getDateRange(period);
   const userId = session.user.id;
 
@@ -167,7 +167,7 @@ export type ChartData = {
   data: ChartDataPoint[];
 };
 
-function getDateRange(
+function getChartDateRange(
   period: "week" | "month" | "year",
   offset: number
 ): { start: Date; end: Date; buckets: ChartBucket[] } {
@@ -237,7 +237,7 @@ export async function getChartData(
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
-  const { start, end, buckets } = getDateRange(period, offset);
+  const { start, end, buckets } = getChartDateRange(period, offset);
 
   const sessions = await prisma.pomodoroSession.findMany({
     where: {
