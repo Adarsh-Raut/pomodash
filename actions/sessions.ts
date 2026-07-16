@@ -3,7 +3,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import type { CreateSessionInput } from "@/types";
 import { unstable_cache } from "next/cache";
@@ -72,6 +72,7 @@ export async function createSession(input: CreateSessionInput) {
   // Invalidate the stats pages so they re-fetch fresh data
   revalidatePath("/dashboard");
   revalidatePath("/stats");
+  revalidateTag(`sessions-${session.user.id}`, "max");
 
   return pomodoroSession;
 }

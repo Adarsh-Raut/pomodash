@@ -153,7 +153,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   const saveSession = useCallback(
     async (mode: TimerMode, completed: boolean, duration: number) => {
-      if (duration < 10) return;
+      if (duration < 10) return false;
       try {
         await createSession({
           type: modeToSessionType(mode),
@@ -161,8 +161,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           completed,
           taskId: activeTaskIdRef.current ?? undefined,
         });
+        return true;
       } catch (e) {
         console.error("Failed to save session", e);
+        return false;
       }
     },
     [],
@@ -240,8 +242,17 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       }
 
       const duration = modeToSeconds(mode, s);
-      await saveSession(mode, true, duration);
+      const saved = await saveSession(mode, true, duration);
+      if (!saved) {
+        // Do not advance to the next timer as though this session was recorded.
+        // Keeping the completed timer visible makes a failed write recoverable
+        // instead of silently losing a full focus session.
+        setState((prev) => ({ ...prev, status: "completed" }));
+        completingRef.current = false;
+        return;
+      }
       resetProgressRefs();
+      window.dispatchEvent(new Event("pomodoro-session-saved"));
 
       if (s.soundEnabled) {
         try {

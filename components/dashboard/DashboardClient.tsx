@@ -5,6 +5,7 @@ import { useActiveTask } from "@/components/providers/TimerProvider";
 import { TimerCard } from "@/components/timer/TimerCard";
 import { RecentSessions } from "@/components/stats/RecentSessions";
 import { TaskList } from "@/components/tasks/TaskList";
+import { getRecentSessions } from "@/actions/sessions";
 import type { UserSettings, PomodoroSessionData } from "@/types";
 import type { Task } from "@prisma/client";
 
@@ -32,12 +33,28 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const { activeTaskId, setActiveTaskId } = useActiveTask();
   const [tasks, setTasks] = useState(initialTasks);
+  const [displayedRecentSessions, setDisplayedRecentSessions] =
+    useState(recentSessions);
   const hasRestoredActiveTaskRef = useRef(false);
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
 
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
+
+  useEffect(() => {
+    setDisplayedRecentSessions(recentSessions);
+  }, [recentSessions]);
+
+  useEffect(() => {
+    const refreshSessionData = async () => {
+      setDisplayedRecentSessions(await getRecentSessions(5));
+    };
+
+    window.addEventListener("pomodoro-session-saved", refreshSessionData);
+    return () =>
+      window.removeEventListener("pomodoro-session-saved", refreshSessionData);
+  }, []);
 
   useEffect(() => {
     if (hasRestoredActiveTaskRef.current) return;
@@ -118,7 +135,7 @@ export function DashboardClient({
             </div>
           </div>
         </div>
-        <RecentSessions sessions={recentSessions} />
+        <RecentSessions sessions={displayedRecentSessions} />
       </div>
     </div>
   );
