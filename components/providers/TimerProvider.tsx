@@ -48,6 +48,8 @@ const TimerSettingsContext = createContext<UserSettings | null>(null);
 const ActiveTaskContext = createContext<ActiveTaskContextValue | null>(null);
 const TimerActionsContext = createContext<TimerActionsContextValue | null>(null);
 const MIN_PARTIAL_SESSION_SECONDS = 60;
+const KEEP_ALIVE_FREQUENCY_HZ = 55;
+const KEEP_ALIVE_GAIN = 0.01;
 
 export function useTimerContext() {
   const state = useContext(TimerStateContext);
@@ -121,7 +123,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const targetEndTimeRef = useRef<number | null>(null);
   const activeTaskIdRef = useRef<string | null>(null);
   const settingsRef = useRef<UserSettings | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const bellBufferRef = useRef<AudioBuffer | null>(null);
+  const keepAliveRef = useRef<{
+    oscillator: OscillatorNode;
+    gain: GainNode;
+  } | null>(null);
   const completingRef = useRef(false);
   const partialPersistedRef = useRef(false);
 
@@ -144,12 +151,111 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const clearTimer = useCallback(() => {
+  // While a session runs, keep the AudioContext continuously "audible" with a
+  // near-inaudible low tone. This stops Chrome from suspending the context
+  // (which freezes the audio clock) and from throttling background timers, so
+  // the completion bell rings on time even when the tab is hidden.
+  const startKeepAlive = useCallback(() => {
+    const ctx = audioContextRef.current;
+    if (!ctx || keepAliveRef.current) return;
+    if (!settingsRef.current?.soundEnabled) return;
+    try {
+      const oscillator = ctx.createOscillator();
+      oscillator.type = "sine";
+      oscillator.frequency.value = KEEP_ALIVE_FREQUENCY_HZ;
+      const gain = ctx.createGain();
+      gain.gain.value = KEEP_ALIVE_GAIN;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      keepAliveRef.current = { oscillator, gain };
+    } catch {}
+  }, []);
+
+  const stopKeepAlive = useCallback(() => {
+    const keepAlive = keepAliveRef.current;
+    if (!keepAlive) return;
+    keepAliveRef.current = null;
+    try {
+      keepAlive.oscillator.stop();
+      keepAlive.oscillator.disconnect();
+      keepAlive.gain.disconnect();
+    } catch {}
+  }, []);
+
+  // Play the bell immediately through the audio rendering thread. The keep-alive
+  // keeps running until the bell has finished so Chrome never sees a silent gap
+  // to suspend the context mid-playback.
+  const playBell = useCallback(
+    (volume: number) => {
+      const ctx = audioContextRef.current;
+      const buffer = bellBufferRef.current;
+      const keepAlive = keepAliveRef.current;
+      if (!ctx || !buffer) {
+        if (keepAlive) stopKeepAlive();
+        return;
+      }
+      try {
+        if (ctx.state === "suspended") {
+          ctx.resume();
+        }
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        gain.gain.value = volume;
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(ctx.currentTime);
+        source.onended = () => {
+          // Only stop the keep-alive we started with; a newly auto-started
+          // break session installs its own keep-alive that must survive.
+          if (keepAliveRef.current === keepAlive) stopKeepAlive();
+        };
+      } catch {
+        if (keepAliveRef.current === keepAlive) stopKeepAlive();
+      }
+    },
+    [stopKeepAlive],
+  );
+
+  // Create/resume the AudioContext and decode the bell within a user gesture.
+  // A context resumed inside the Start click is allowed to keep producing
+  // sound after the tab is backgrounded.
+  const ensureAudio = useCallback(async () => {
+    try {
+      if (!settingsRef.current?.soundEnabled) return;
+      if (!audioContextRef.current) {
+        const Ctx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
+        audioContextRef.current = new Ctx();
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      if (!bellBufferRef.current) {
+        const response = await fetch("/sounds/bell.mp3");
+        const arrayBuffer = await response.arrayBuffer();
+        bellBufferRef.current = await ctx.decodeAudioData(arrayBuffer);
+        // The first session may already be running while the bell decoded.
+        if (targetEndTimeRef.current) startKeepAlive();
+      }
+    } catch {}
+  }, [startKeepAlive]);
+
+  const stopInterval = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   }, []);
+
+  const clearTimer = useCallback(() => {
+    stopInterval();
+    stopKeepAlive();
+  }, [stopInterval, stopKeepAlive]);
 
   const saveSession = useCallback(
     async (mode: TimerMode, completed: boolean, duration: number) => {
@@ -213,6 +319,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     clearTimer();
     runStartTimeRef.current = Date.now();
     targetEndTimeRef.current = Date.now() + durationSeconds * 1000;
+    startKeepAlive();
     intervalRef.current = setInterval(() => {
       if (!targetEndTimeRef.current) return;
 
@@ -228,13 +335,15 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         return { ...prev, timeRemaining: nextTimeRemaining };
       });
     }, 250);
-  }, [clearTimer]);
+  }, [clearTimer, startKeepAlive]);
 
   const handleComplete = useCallback(
     async (mode: TimerMode, completedPomodoros: number) => {
       if (completingRef.current) return;
       completingRef.current = true;
-      clearTimer();
+      // Stop ticking but leave the keep-alive running so the AudioContext stays
+      // audible (and unsuspended) while the session is saved and the bell plays.
+      stopInterval();
       const s = settingsRef.current;
       if (!s) {
         completingRef.current = false;
@@ -254,14 +363,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       resetProgressRefs();
       window.dispatchEvent(new Event("pomodoro-session-saved"));
 
+      // The keep-alive has been keeping the context running (and the background
+      // timers unthrottled); playBell stops it after the bell finishes.
       if (s.soundEnabled) {
-        try {
-          if (!audioRef.current) {
-            audioRef.current = new Audio("/sounds/bell.mp3");
-          }
-          audioRef.current.volume = s.soundVolume / 100;
-          await audioRef.current.play();
-        } catch {}
+        playBell(s.soundVolume / 100);
       }
 
       if (mode === "focus") {
@@ -301,7 +406,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       }
       completingRef.current = false;
     },
-    [clearTimer, resetProgressRefs, saveSession, startInterval],
+    [playBell, resetProgressRefs, saveSession, startInterval, stopInterval],
   );
 
   // Watch for timer hitting 0
@@ -333,11 +438,27 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("pagehide", handlePageHide);
   }, [persistPartialSession]);
 
+  // Safety net: if Chrome suspended the AudioContext while the tab was hidden,
+  // resume it the moment the tab becomes visible again.
+  useEffect(() => {
+    const handleVisibility = () => {
+      const ctx = audioContextRef.current;
+      if (!document.hidden && ctx && ctx.state === "suspended") {
+        ctx.resume();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   const start = useCallback(() => {
+    void ensureAudio();
     resetProgressRefs();
     setState((prev) => ({ ...prev, status: "running" }));
     startInterval(state.timeRemaining);
-  }, [resetProgressRefs, startInterval, state.timeRemaining]);
+  }, [ensureAudio, resetProgressRefs, startInterval, state.timeRemaining]);
 
   const pause = useCallback(() => {
     clearTimer();
