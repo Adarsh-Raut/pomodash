@@ -207,3 +207,7 @@ npx prisma migrate deploy   # Apply migrations to production
 ## License
 
 MIT
+
+---
+
+Built by [Adarsh Raut](https://adarshraut.vercel.app)
